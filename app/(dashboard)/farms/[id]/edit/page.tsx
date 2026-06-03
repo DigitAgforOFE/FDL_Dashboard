@@ -17,6 +17,7 @@ export default async function EditFarmPage({ params }: { params: Promise<{ id: s
         Contact_Phone: farm.Contact_Phone,
         Contact_Email: farm.Contact_Email,
         farm_summary: farm.farm_summary,
+        is_active: farm.is_active,
       }}
     />
   );

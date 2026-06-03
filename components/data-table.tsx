@@ -11,11 +11,12 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { Button } from "@/components/ui/button";
-import { Search, Plus } from "lucide-react";
+import { Search, Plus, ChevronUp, ChevronDown, ChevronsUpDown } from "lucide-react";
 
 interface Column<T> {
   key: string;
   header: string;
+  sortable?: boolean;
   render?: (row: T) => React.ReactNode;
 }
 
@@ -29,6 +30,8 @@ interface DataTableProps<T extends Record<string, unknown>> {
   onRowClick?: (row: T) => void;
 }
 
+type SortDir = "asc" | "desc";
+
 export function DataTable<T extends Record<string, unknown>>({
   title,
   data,
@@ -39,6 +42,17 @@ export function DataTable<T extends Record<string, unknown>>({
   onRowClick,
 }: DataTableProps<T>) {
   const [search, setSearch] = useState("");
+  const [sortKey, setSortKey] = useState<string | null>(null);
+  const [sortDir, setSortDir] = useState<SortDir>("asc");
+
+  function handleSort(key: string) {
+    if (sortKey === key) {
+      setSortDir((d) => (d === "asc" ? "desc" : "asc"));
+    } else {
+      setSortKey(key);
+      setSortDir("asc");
+    }
+  }
 
   const filtered = search
     ? data.filter((row) =>
@@ -48,6 +62,21 @@ export function DataTable<T extends Record<string, unknown>>({
         })
       )
     : data;
+
+  const sorted = sortKey
+    ? [...filtered].sort((a, b) => {
+        const av = a[sortKey];
+        const bv = b[sortKey];
+        if (av == null && bv == null) return 0;
+        if (av == null) return 1;
+        if (bv == null) return -1;
+        const cmp =
+          typeof av === "boolean" && typeof bv === "boolean"
+            ? Number(bv) - Number(av)
+            : String(av).localeCompare(String(bv), undefined, { numeric: true, sensitivity: "base" });
+        return sortDir === "asc" ? cmp : -cmp;
+      })
+    : filtered;
 
   return (
     <div className="space-y-4">
@@ -76,12 +105,32 @@ export function DataTable<T extends Record<string, unknown>>({
           <TableHeader>
             <TableRow>
               {columns.map((col) => (
-                <TableHead key={col.key}>{col.header}</TableHead>
+                <TableHead key={col.key}>
+                  {col.sortable ? (
+                    <button
+                      onClick={() => handleSort(col.key)}
+                      className="flex items-center gap-1 hover:text-slate-900 transition-colors"
+                    >
+                      {col.header}
+                      {sortKey === col.key ? (
+                        sortDir === "asc" ? (
+                          <ChevronUp className="h-3.5 w-3.5" />
+                        ) : (
+                          <ChevronDown className="h-3.5 w-3.5" />
+                        )
+                      ) : (
+                        <ChevronsUpDown className="h-3.5 w-3.5 opacity-40" />
+                      )}
+                    </button>
+                  ) : (
+                    col.header
+                  )}
+                </TableHead>
               ))}
             </TableRow>
           </TableHeader>
           <TableBody>
-            {filtered.length === 0 ? (
+            {sorted.length === 0 ? (
               <TableRow>
                 <TableCell
                   colSpan={columns.length}
@@ -91,7 +140,7 @@ export function DataTable<T extends Record<string, unknown>>({
                 </TableCell>
               </TableRow>
             ) : (
-              filtered.map((row, idx) => (
+              sorted.map((row, idx) => (
                 <TableRow
                   key={idx}
                   onClick={() => onRowClick?.(row)}

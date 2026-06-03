@@ -11,16 +11,61 @@ interface FarmRow {
   Farmer_Name: string | null;
   County: string | null;
   State: string | null;
+  is_active: boolean;
+  created_at: string | null;
+  updated_at: string | null;
+}
+
+function formatDate(iso: string | null): string {
+  if (!iso) return "—";
+  return new Date(iso).toLocaleDateString(undefined, {
+    year: "numeric",
+    month: "short",
+    day: "numeric",
+  });
 }
 
 export function FarmsClient({ data }: { data: FarmRow[] }) {
   const router = useRouter();
 
   const columns = [
-    { key: "Farm_Name", header: "Farm Name" },
-    { key: "Farmer_Name", header: "Farmer Name" },
-    { key: "County", header: "County" },
-    { key: "State", header: "State" },
+    { key: "Farm_Name", header: "Farm Name", sortable: true },
+    { key: "Farmer_Name", header: "Farmer Name", sortable: true },
+    { key: "County", header: "County", sortable: true },
+    { key: "State", header: "State", sortable: true },
+    {
+      key: "is_active",
+      header: "Active",
+      sortable: true,
+      render: (row: Record<string, unknown>) => {
+        const active = (row as unknown as FarmRow).is_active;
+        return (
+          <span
+            className={`inline-flex items-center rounded-full px-2 py-0.5 text-xs font-medium ${
+              active
+                ? "bg-green-100 text-green-700"
+                : "bg-slate-100 text-slate-500"
+            }`}
+          >
+            {active ? "Active" : "Inactive"}
+          </span>
+        );
+      },
+    },
+    {
+      key: "created_at",
+      header: "Date Added",
+      sortable: true,
+      render: (row: Record<string, unknown>) =>
+        formatDate((row as unknown as FarmRow).created_at),
+    },
+    {
+      key: "updated_at",
+      header: "Last Modified",
+      sortable: true,
+      render: (row: Record<string, unknown>) =>
+        formatDate((row as unknown as FarmRow).updated_at),
+    },
     {
       key: "_actions",
       header: "",
@@ -28,7 +73,10 @@ export function FarmsClient({ data }: { data: FarmRow[] }) {
         <Button
           size="icon-sm"
           variant="ghost"
-          onClick={(e) => { e.stopPropagation(); router.push(`/farms/${(row as unknown as FarmRow).id}/edit`); }}
+          onClick={(e) => {
+            e.stopPropagation();
+            router.push(`/farms/${(row as unknown as FarmRow).id}/edit`);
+          }}
         >
           <Pencil className="h-4 w-4" />
         </Button>

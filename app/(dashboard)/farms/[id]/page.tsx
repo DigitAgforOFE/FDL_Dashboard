@@ -17,6 +17,8 @@ import Link from "next/link";
 import { RelationPicker } from "@/components/relation-picker";
 import FarmMap from "@/components/farm-map-wrapper";
 import ReactMarkdown from "react-markdown";
+import { FarmExperimentsTab } from "@/components/farm-experiments-tab";
+import { FieldBoundaryUpload } from "@/components/field-boundary-upload";
 
 const STATUS_LABELS: Record<number, { label: string; variant: "default" | "secondary" | "outline" }> = {
   1: { label: "Unassigned", variant: "outline" },
@@ -29,7 +31,7 @@ export default async function FarmDetailPage({ params }: { params: Promise<{ id:
   const { id } = await params;
   const farmId = parseInt(id);
 
-  const [farm, allProjects] = await Promise.all([
+  const [farm, allProjects, farmExperiment, allTreatments] = await Promise.all([
     prisma.farm.findUnique({
       where: { id: farmId },
       include: {
@@ -71,6 +73,15 @@ export default async function FarmDetailPage({ params }: { params: Promise<{ id:
       },
     }),
     prisma.project.findMany({ select: { id: true, Project_Name: true } }),
+    prisma.farmExperiment.findFirst({
+      where: { farm_id: farmId },
+      include: {
+        ExperimentTests: { include: { Test: { select: { id: true, Test_Name: true } } } },
+        ExperimentDroneFlights: { include: { Drone: { select: { id: true, Name: true } } } },
+        ExperimentTreatments: { include: { Treatment: { select: { id: true, Treatment_Name: true } } } },
+      },
+    }),
+    prisma.treatment.findMany({ select: { id: true, Treatment_Name: true }, orderBy: { Treatment_Name: "asc" } }),
   ]);
 
   if (!farm) notFound();
@@ -195,6 +206,7 @@ export default async function FarmDetailPage({ params }: { params: Promise<{ id:
           <TabsTrigger value="overview">Overview</TabsTrigger>
           <TabsTrigger value="contacts">Contacts ({farm.Contacts.length})</TabsTrigger>
           <TabsTrigger value="summary">Farmer Summary</TabsTrigger>
+          <TabsTrigger value="experiments">Experiments</TabsTrigger>
           <TabsTrigger value="uploads">Data Uploads ({totalUploads})</TabsTrigger>
         </TabsList>
 
@@ -255,6 +267,8 @@ export default async function FarmDetailPage({ params }: { params: Promise<{ id:
             notes={[]}
             farmId={farm.id}
           />
+
+          <FieldBoundaryUpload farmId={farm.id} fieldCount={farm.Fields.length} />
         </TabsContent>
 
         {/* ── Contacts ── */}
@@ -321,6 +335,43 @@ export default async function FarmDetailPage({ params }: { params: Promise<{ id:
               )}
             </CardContent>
           </Card>
+        </TabsContent>
+
+        {/* ── Experiments ── */}
+        <TabsContent value="experiments" className="mt-4">
+          <FarmExperimentsTab
+            farmId={farm.id}
+            experiment={
+              farmExperiment
+                ? {
+                    id: farmExperiment.id,
+                    experiment_name: farmExperiment.experiment_name,
+                    start_date: farmExperiment.start_date?.toISOString() ?? null,
+                    hypothesis: farmExperiment.hypothesis,
+                    experiment_desc: farmExperiment.experiment_desc,
+                    measurements: farmExperiment.measurements,
+                    criteria: farmExperiment.criteria,
+                    lab_description: farmExperiment.lab_description,
+                    tests: farmExperiment.ExperimentTests.map((et) => ({
+                      id: et.id,
+                      test_id: et.test_id,
+                      test_name: et.Test.Test_Name,
+                      n_samples: et.n_samples,
+                      expected_date: et.expected_date?.toISOString() ?? null,
+                    })),
+                    drones: farmExperiment.ExperimentDroneFlights.map((ed) => ({
+                      id: ed.id,
+                      drone_id: ed.drone_id,
+                      drone_name: ed.Drone.Name,
+                      n_flights: ed.n_flights,
+                      expected_date: ed.expected_date?.toISOString() ?? null,
+                    })),
+                    treatment_ids: farmExperiment.ExperimentTreatments.map((et) => et.treatment_id),
+                  }
+                : null
+            }
+            allTreatments={allTreatments}
+          />
         </TabsContent>
 
         {/* ── Data Uploads ── */}

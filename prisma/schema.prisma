@@ -54,20 +54,22 @@ model Farm {
   Contact_Email String?
   County        String?
   State         String?
-  created_at    DateTime?
-  updated_at    DateTime?
+  is_active     Boolean   @default(true)
+  created_at    DateTime? @default(now())
+  updated_at    DateTime? @updatedAt
 
   farm_summary    String?
 
-  Fields          Field[]
-  ExperimentZones ExperimentZone[]
-  ProjectFarms    ProjectFarm[]
+  Fields           Field[]
+  ExperimentZones  ExperimentZone[]
+  ProjectFarms     ProjectFarm[]
   Contacts         Contact[]
   Photos           Photo[]
   Notes            Note[]
   Recordings       Recording[]
   Locations        Location[]
   LabMemberUploads LabMemberUpload[]
+  FarmExperiments  FarmExperiment[]
 
   @@map("Farms")
   @@schema("pgntarg2udzj1f3")
@@ -142,7 +144,8 @@ model Treatment {
   created_at     DateTime?
   updated_at     DateTime?
 
-  TreatmentProtocols TreatmentProtocol[]
+  TreatmentProtocols    TreatmentProtocol[]
+  ExperimentTreatments  ExperimentTreatment[]
 
   @@map("Treatments")
   @@schema("pgntarg2udzj1f3")
@@ -202,11 +205,11 @@ model Test {
   Cost             Decimal?
   Planned_Date     DateTime?
   Completed_Date   DateTime?
-  N_Samples        Int?
   created_at       DateTime?
   updated_at       DateTime?
 
-  FieldTests FieldTest[]
+  FieldTests       FieldTest[]
+  ExperimentTests  ExperimentTest[]
 
   @@map("Tests")
   @@schema("pgntarg2udzj1f3")
@@ -222,7 +225,8 @@ model Drone {
   created_at        DateTime?
   updated_at        DateTime?
 
-  FieldDrones FieldDrone[]
+  FieldDrones            FieldDrone[]
+  ExperimentDroneFlights ExperimentDroneFlight[]
 
   @@map("Drones")
   @@schema("pgntarg2udzj1f3")
@@ -432,5 +436,67 @@ model LabMemberUpload {
   Project   Project?   @relation(fields: [project_id], references: [id])
 
   @@map("Lab_Member_Uploads")
+  @@schema("pgntarg2udzj1f3")
+}
+
+model FarmExperiment {
+  id               Int       @id @default(autoincrement())
+  farm_id          Int?
+  experiment_name  String?
+  start_date       DateTime? @db.Date
+  hypothesis       String?
+  experiment_desc  String?
+  measurements     String?
+  criteria         String?
+  lab_description  String?
+  created_at       DateTime  @default(now())
+  updated_at       DateTime  @updatedAt
+
+  Farm                   Farm?                   @relation(fields: [farm_id], references: [id])
+  ExperimentTests        ExperimentTest[]
+  ExperimentDroneFlights ExperimentDroneFlight[]
+  ExperimentTreatments   ExperimentTreatment[]
+
+  @@map("Farm_Experiments")
+  @@schema("pgntarg2udzj1f3")
+}
+
+model ExperimentTest {
+  id            Int       @id @default(autoincrement())
+  experiment_id Int
+  test_id       Int
+  n_samples     Int?
+  expected_date DateTime? @db.Date
+
+  Experiment FarmExperiment @relation(fields: [experiment_id], references: [id], onDelete: Cascade)
+  Test       Test           @relation(fields: [test_id], references: [id], onDelete: Cascade)
+
+  @@map("Experiment_Tests")
+  @@schema("pgntarg2udzj1f3")
+}
+
+model ExperimentDroneFlight {
+  id            Int       @id @default(autoincrement())
+  experiment_id Int
+  drone_id      Int
+  n_flights     Int?
+  expected_date DateTime? @db.Date
+
+  Experiment FarmExperiment @relation(fields: [experiment_id], references: [id], onDelete: Cascade)
+  Drone      Drone          @relation(fields: [drone_id], references: [id], onDelete: Cascade)
+
+  @@map("Experiment_Drone_Flights")
+  @@schema("pgntarg2udzj1f3")
+}
+
+model ExperimentTreatment {
+  experiment_id Int
+  treatment_id  Int
+
+  Experiment FarmExperiment @relation(fields: [experiment_id], references: [id], onDelete: Cascade)
+  Treatment  Treatment      @relation(fields: [treatment_id], references: [id], onDelete: Cascade)
+
+  @@id([experiment_id, treatment_id])
+  @@map("Experiment_Treatments")
   @@schema("pgntarg2udzj1f3")
 }

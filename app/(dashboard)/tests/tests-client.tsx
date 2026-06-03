@@ -5,7 +5,7 @@ import { DataTable } from "@/components/data-table";
 import { Button } from "@/components/ui/button";
 import { Pencil } from "lucide-react";
 
-interface TestRow { id: number; Test_Name: string | null; Planned_Date: string | null; Completed_Date: string | null; Cost: number | null; N_Samples: number | null }
+interface TestRow { id: number; Test_Name: string | null; Planned_Date: string | null; Completed_Date: string | null; Cost: number | null }
 
 export function TestsClient({ data }: { data: TestRow[] }) {
   const router = useRouter();
@@ -22,7 +22,6 @@ export function TestsClient({ data }: { data: TestRow[] }) {
         return <span>{c != null ? `$${c.toLocaleString()}` : "—"}</span>;
       },
     },
-    { key: "N_Samples", header: "N Samples" },
     {
       key: "_actions",
       header: "",

@@ -144,7 +144,7 @@ export default function FarmMap({ fields, zones, photos, notes, farmId, labUploa
         </p>
       )}
 
-      <div className="rounded-lg overflow-hidden border border-slate-200" style={{ height: 520 }}>
+      <div className="rounded-lg overflow-hidden border border-slate-200 isolate" style={{ height: 520 }}>
         <MapContainer center={center} zoom={14} style={{ height: "100%", width: "100%" }} scrollWheelZoom>
           {bounds && <BoundsAdjuster bounds={bounds} />}
 

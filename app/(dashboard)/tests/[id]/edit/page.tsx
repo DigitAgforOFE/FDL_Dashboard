@@ -14,7 +14,6 @@ export default async function EditTestPage({ params }: { params: Promise<{ id: s
         Test_Description: test.Test_Description,
         Cost: test.Cost ? Number(test.Cost) : null,
         Planned_Date: test.Planned_Date ? test.Planned_Date.toISOString() : null,
-        N_Samples: test.N_Samples,
       }}
     />
   );

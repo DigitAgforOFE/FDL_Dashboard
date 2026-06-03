@@ -14,6 +14,7 @@ interface Props {
     Contact_Phone: string | null;
     Contact_Email: string | null;
     farm_summary: string | null;
+    is_active: boolean;
   };
 }
 

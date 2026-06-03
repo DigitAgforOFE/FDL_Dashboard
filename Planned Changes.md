@@ -5,13 +5,65 @@
 - [x] 4. **Add a "status" flag to all data uploaded by the FarmerDataLogger app.** This status will be coded as 1-4.  With 1 indicating no project specific linkage, (ie, uploaded by a lab member and the data is not inside or near (<1000 m from a farm polygon), 2 is at least linked to a farm either by spatial relationship or uploaded by a farmer. 3  is spatially located and manually assigned a category and description by a human or external AI workflow and requires the submitter to clarify information, 4 has been processed by human/ external AI workflow and is fully completed. 
 - [x] 5.  **Data Sorting** A data sorting interaction ui is needed. This ui will only be accessible to those with lab member credentials. In the UI, users will be able to see all data uploaded by the FDL app either on a map or in a list where they can sort by date, farmer/lab member or status (as defined above). In this ui, the lab member can open each data set (image, text, voice recording etc.) and add a category, a description, and assign it to an experiment. Once the data is edited in the ui, its status is changed to 3.
 - [x] 6. **Separate out access** Data upload url needs to be public and very secure to prevent bad actor access. All other access (UI, API) can remain on private address if possible. Alternatively, if the landing page of the ui can be adequately locked down with a secure access method and no way to register a new account from outside of the admin panel, both the ui and the upload url could be exposed
-- [ ] 7. **Dashboard Functionality Configuration** The dashboard UI needs some reconfiguring to improve workflow and functionality, changes are as follows:
-	- [ ] **Side Bar** The side menu in the panel needs to be reorganized, The Admin menu can be moved to the top and house "Contacts" (Change the label to "Farmers"), "Lab Members", "Data Uploads" "Data Sorting" and "Dashboard". "Treatment Protocols" can get moved to Reference Data
-	- [ ] **Farm Page** The Farm page inside "Farms" (once the user clicks on a specific farm) Should show more info right away, including the leaflet map of the fields and experiment zones associated with the farm, farmer contact info and linked experiments. The "Fields", "Treatments", "Map" and "Experiment Zones"  tabs can be removed (since the info will be shown in the main farm page) so that there is just an "Overview" tab, "Contacts Tab", "Farmer Summary" (see bullet below) and a "Data Uploads Tab" for data that they uploaded from the mobile app shown on a separate map.
-	- [ ] **Farmer Summary Page** Once farmer interviews are processed, there will be a farmer summary document that highlights important information for the farm. This will be a markdown file uploaded via the client, so there should be a "Farm Info" tab that can display markdown. This will also require adding a "Farm Summary" field in the db table to store the farm summary data. 
-- [ ] 8.  **Data Access Client** To facilitate efficient data processing workflows outside of the UI for scripts, ai assistants and lab members, I would like to build a CLI client that can interact with the database backend. This client could be downloaded and setup on a lab members computer, be given a client specific token (linked to the lab member, but identifiable as a client) and be used to access datasets via CLI commands. The cli would need to be bidirectional to allow for pulling unique identifiers from the db so that it could use proper convention when uploading files. for example, a command to upload field boundaries from a shapefile of geopackage to "Farmer brown" would use fuzzy matching to find the entry and unique id for "Farmer Brown" in the database, and then upload the data to the table fore Farmer Brown.
+- [x] 7. **Dashboard Functionality Configuration** The dashboard UI needs some reconfiguring to improve workflow and functionality, changes are as follows:
+	- [x] **Side Bar** The side menu in the panel needs to be reorganized, The Admin menu can be moved to the top and house "Contacts" (Change the label to "Farmers"), "Lab Members", "Data Uploads" "Data Sorting" and /"Dashboard". "Treatment Protocols" can get moved to Reference Data
+	- [x] **Farm Page** The Farm page inside "Farms" (once the user clicks on a specific farm) Should show more info right away, including the leaflet map of the fields and experiment zones associated with the farm, farmer contact info and linked experiments. The "Fields", "Treatments", "Map" and "Experiment Zones"  tabs can be removed (since the info will be shown in the main farm page) so that there is just an "Overview" tab, "Contacts Tab", "Farmer Summary" (see bullet below) and a "Data Uploads Tab" for data that they uploaded from the mobile app shown on a separate map.
+	- [x] **Farmer Summary Page** Once farmer interviews are processed, there will be a farmer summary document that highlights important information for the farm. This will be a markdown file uploaded via the client, so there should be a "Farm Info" tab that can display markdown. This will also require adding a "Farm Summary" field in the db table to store the farm summary data. 
+- [ ] 8.  **Data Access Client** To facilitate efficient data processing workflows outside of the UI for scripts, ai assistants and lab members, I would like to build a CLI client that can interact with the database backend. This client could be downloaded and setup on a lab members computer, be given a client specific token (linked to the lab member, but identifiable as a client) and be used to access datasets via CLI commands. The cli would need to be bidirectional to allow for pulling unique identifiers from the db so that it could use proper convention when uploading files. for example, a command to upload field boundaries from a shapefile of geopackage to "Farmer brown" would use fuzzy matching to find the entry and unique id for "Farmer Brown" in the database, and then upload the data to the table fore Farmer Brown. Functions that should be available to the client:
+	- [x] Create and edit Farm table
+	- [x] Download and Upload Field boundaries to a specific Farm
+	- [x] Download and Upload experimental zones to a specific Farm
+	- [x] Download and upload mobile app data from farmers and lab members (separately)
+	- [ ] Upload/download farm summary markdown
+	- [ ] Pull and push items on the field work scheduling calendar (not implemented yet)
+	
+- [x] 9. **Experiment Info** Each farm page needs an "Experiments" tab (after "Farmer Summary") that contains information about their specific experiment(s). The data should be stored in two separate chunks; a Farmer assigned chunk called "Experiment Card", which contains the fields
+	1. Experiment Name
+	2. Start Date
+	3. Hypothesis
+	4. Experiment
+	5. Measurements
+	6. Criteria
+	The second chunk is "Lab Design", which includes:
+	7. Description
+	8. Tests (multi drop down linked to Tests table. format is, select first test from drop down, then enter number of that test and expected collection date, then another drop down appears, this way the user can enter all applicable tests and the number of each sample) (Note. in the existing configuration, "N Samples" should be removed from the existing Tests table)
+	9. Drone Flights (same format as above) Note: both forms should allow for duplicate entries of tests or drone flights, as long as the dates are different
+	10. Treatments (multiselect from the Treatments table.)
 
-- [ ] 9. **File tree generation** (see step 3 below).
+- [ ] 10. **File tree generation** 3. A file tree for the project is generated on box or an SMB share. Structured data from the Database will be stored there including a project info(ReadOnly).md that will be updated with data from the database, a project boundaries.gpkg file that stores all spatial data, and an Assets folder which contains all data uploaded via the FDL app. Test data or unstructured data will also be stored there and workflows will be developed to ingest and process the data will be developed over time. The file structure will be:
+	Root/
+		Projects
+			Farms
+				Farm Name
+					Farmer Uploads
+						Images
+						Recordings
+						Notes
+						GPS Tracks
+					Consultant Uploads
+						Images
+						Recordings
+						Notes
+						GPS Tracks
+					Experiment
+						Experiment Card.md
+						Project Summary.md
+					Farm_Summary.md
+					Spatial Data
+						Boundaries.gpks (containing field and experiment zone areas)
+					Tests 
+						Soil_test_results.pdf
+						Biomass_Datasheet.csv
+					
+	
+	
+	The full file structure will be created when the sync client is run, regardless of whether all folders have data. Once the sync command is run, a validation methodology has to be developed to allow data to be pushed or pulled without everwriting changes.
+- [ ] 11. **Field Work Scheduling** Admin should be able to schedule field work for specific farms and tests/drone flights in a calendar in the ui. This needs to be fleshed out more.
+- [ ] 12. **Upload Field Boundaries Button** In the farm page, there needs to be an upload field boundaries box that can handle shp files, geojson and geopackage inputs, as well as handling crs by having the user specify the epsg 
+- [ ] 13. **Spatial Processing Scripts** As it stands, there are a few tasks that must be done each time new spatial data is added. These tasks are:
+	- [ ] Total Area calculation to update dashboard number
+	- [ ] Field Matching for spatial data. check uploaded data against field boundaries to match to field or farm (field uses intersect match, if not in field, use 1000 m near distance matching to match to farm)
+	- [ ] 
 
 
 
@@ -25,7 +77,30 @@
 2. Collecting Initial Field data through Farmer Data Logger (FDL App).
 	1. Data is uploaded via app by the farmer (automatically assigned to the farm) OR. Data is uploaded by lab member or agronomist (must be assigned to farm via location data or manually by a lab member via the UI)
 	2. All data is processed via human /AI classification
-3. A file tree for the project is generated on box or an SMB share. Structured data from the Database will be stored there including a project info(ReadOnly).md that will be updated with data from the database, a project boundaries.gpkg file that stores all spatial data, and an Assets folder which contains all data uploaded via the FDL app. Test data or unstructured data will also be stored there and workflows will be developed to ingest and process the data will be developed over time. 
+3. A file tree for the project is generated on box or an SMB share. Structured data from the Database will be stored there including a project info(ReadOnly).md that will be updated with data from the database, a project boundaries.gpkg file that stores all spatial data, and an Assets folder which contains all data uploaded via the FDL app. Test data or unstructured data will also be stored there and workflows will be developed to ingest and process the data will be developed over time. The file structure will be:
+Root/
+	Projects
+		Farms
+			Farmer Uploads
+				Images
+				Recordings
+				Notes
+				GPS Tracks
+			Consultant Uploads
+				Images
+				Recordings
+				Notes
+				GPS Tracks
+			Experiment
+				Experiment Card.md
+				Project Summary.md
+			Farm_Summary.md
+			Spatial Data
+				Boundaries.gpks (containing field and experiment zone areas)
+			Tests 
+				Soil_test_results.pdf
+				Biomass_Datasheet.csv
+			
 
- app_lifecycle.compose_action():58 - Failed 'up' action for 'nocodb' app:  Network ix-internal-nocodb-nocodb-net  Creating\n Network ix-internal-nocodb-nocodb-net  Created\n Container ix-nocodb-pemissions-1  Creating\n Container ix-nocodb-permissions-1  Created\n Container ix-nocodb-postgres_upgrade-1  Creating\n Container ix-nocodb-redis-1  Creating\n Container ix-nocodb-redis-1  Created\n Container ix-nocodb-postgres_upgrade-1  Created\n Container ix-nocodb-postgres-1  Creating\n Container ix-nocodb-postgres-1  Created\n Container ix-nocodb-nocodb-1  Creating\n Container ix-nocodb-nocodb-1  Created\n Container ix-nocodb-ppermissions-1  Starting\n Container ix-nocodb-permissions-1  Started\n Container ix-nocodb-permissions-1  Waiting\n Container ix-nocodb-permissions-1  Waiting\n Container ix-nocodb-permissions-1  Exited\n Container ix-nocodb-postgres_upgrade-1  Starting\n Container ix-nocodb-permissions-1  Exited\n Container ix-nocodb-redis-1  Starting\n Container ix-nocodb-postgres_upgrade-1  Started\n Container ix-nocodb-postgres_upgrade-1  Waiting Container ix-nocodb-permissions-1  Waiting\n Container ix-nocodb-redis-1  Started\n Container ix-nocodb-permissions-1  Exited\n Container ix-nocodb-postgres_upgrade-1  service "postgres_upgrade" didn't complete successfully: exit 1\nservice "postgres_upgrade" didn't complete successfully: exit 1\n
 
+The full file structure will be created when the sync client is run, regardless of whether all folders have data. Once the sync command is run, a validation methodology has to be developed to allow data to be pushed or pulled without everwriting changes.

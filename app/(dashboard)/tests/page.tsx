@@ -10,7 +10,6 @@ export default async function TestsPage() {
     Planned_Date: t.Planned_Date ? format(new Date(t.Planned_Date), "MMM d, yyyy") : null,
     Completed_Date: t.Completed_Date ? format(new Date(t.Completed_Date), "MMM d, yyyy") : null,
     Cost: t.Cost ? Number(t.Cost) : null,
-    N_Samples: t.N_Samples,
   }));
   return <TestsClient data={data} />;
 }

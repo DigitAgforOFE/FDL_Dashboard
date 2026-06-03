@@ -258,7 +258,6 @@ export default async function DashboardPage() {
                   <TableHead>Fields</TableHead>
                   <TableHead>Planned Date</TableHead>
                   <TableHead>Cost</TableHead>
-                  <TableHead>N Samples</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
@@ -276,7 +275,6 @@ export default async function DashboardPage() {
                     <TableCell>
                       {test.Cost ? `$${Number(test.Cost).toLocaleString()}` : "—"}
                     </TableCell>
-                    <TableCell>{test.N_Samples ?? "—"}</TableCell>
                   </TableRow>
                 ))}
               </TableBody>

@@ -4,6 +4,8 @@ FROM node:20-alpine AS base
 FROM base AS deps
 WORKDIR /app
 COPY package*.json ./
+# python3/make/g++ are required to compile better-sqlite3 native addon on Alpine
+RUN apk add --no-cache python3 make g++
 RUN npm ci
 
 # Stage 2: build

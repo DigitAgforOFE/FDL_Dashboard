@@ -9,8 +9,9 @@ export default async function FarmsPage() {
     Farmer_Name: f.Farmer_Name,
     County: f.County,
     State: f.State,
-    Contact_Phone: f.Contact_Phone,
-    Contact_Email: f.Contact_Email,
+    is_active: f.is_active,
+    created_at: f.created_at ? f.created_at.toISOString() : null,
+    updated_at: f.updated_at ? f.updated_at.toISOString() : null,
   }));
   return <FarmsClient data={data} />;
 }

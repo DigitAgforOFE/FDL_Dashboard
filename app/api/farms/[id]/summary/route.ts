@@ -6,7 +6,7 @@ import { authenticateUpload } from "@/lib/upload-auth";
 
 export async function POST(req: Request, { params }: { params: Promise<{ id: string }> }) {
   const auth = await authenticateUpload(req);
-  if (!auth) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  if ("error" in auth) return auth.error;
 
   const { id } = await params;
   const farmId = parseInt(id);

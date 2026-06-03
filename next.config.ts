@@ -4,6 +4,7 @@ const nextConfig: NextConfig = {
   output: "standalone",
   outputFileTracingIncludes: {
     "/**": ["./node_modules/.prisma/client/**"],
+    "app/api/farms/**": ["./node_modules/better-sqlite3/build/Release/*.node"],
   },
   experimental: {
     serverActions: {

@@ -9,7 +9,9 @@ export default auth((req) => {
   const isApiAuth = nextUrl.pathname.startsWith("/api/auth");
 
   const isMobileApi = nextUrl.pathname.startsWith("/api/upload") ||
-                      nextUrl.pathname.startsWith("/api/files");
+                      nextUrl.pathname.startsWith("/api/files") ||
+                      nextUrl.pathname.startsWith("/api/data") ||
+                      (nextUrl.pathname.startsWith("/api/farms/") && nextUrl.pathname.endsWith("/summary"));
 
   if (isApiAuth || isMobileApi) return NextResponse.next();
   if (isAuthPage) {
