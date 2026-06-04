@@ -15,6 +15,7 @@ import {
 } from "@/components/ui/table";
 import Link from "next/link";
 import { RelationPicker } from "@/components/relation-picker";
+import { DocumentUpload } from "@/components/document-upload";
 
 export default async function ProjectDetailPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
@@ -28,6 +29,7 @@ export default async function ProjectDetailPage({ params }: { params: Promise<{ 
         ProjectLabMembers: { include: { LabMember: true } },
         TreatmentProtocols: { include: { Treatment: true } },
         ExperimentZones: { include: { Farm: true } },
+        Documents: { orderBy: { uploaded_at: "desc" } },
       },
     }),
     prisma.farm.findMany({ select: { id: true, Farm_Name: true } }),
@@ -75,6 +77,7 @@ export default async function ProjectDetailPage({ params }: { params: Promise<{ 
           <TabsTrigger value="lab-members">Lab Members ({project.ProjectLabMembers.length})</TabsTrigger>
           <TabsTrigger value="protocols">Treatment Protocols ({project.TreatmentProtocols.length})</TabsTrigger>
           <TabsTrigger value="zones">Experiment Zones ({project.ExperimentZones.length})</TabsTrigger>
+          <TabsTrigger value="documents">Documents ({project.Documents.length})</TabsTrigger>
         </TabsList>
 
         <TabsContent value="overview" className="mt-4">
@@ -194,6 +197,52 @@ export default async function ProjectDetailPage({ params }: { params: Promise<{ 
               )}
             </CardContent>
           </Card>
+        </TabsContent>
+        <TabsContent value="documents" className="mt-4 space-y-4">
+          <DocumentUpload projectId={project.id} />
+          {project.Documents.length > 0 && (
+            <Card>
+              <CardHeader><CardTitle className="text-base">Uploaded Documents</CardTitle></CardHeader>
+              <CardContent>
+                <Table>
+                  <TableHeader>
+                    <TableRow>
+                      <TableHead>Name</TableHead>
+                      <TableHead>Type</TableHead>
+                      <TableHead>Size</TableHead>
+                      <TableHead>Uploaded</TableHead>
+                      <TableHead>Description</TableHead>
+                      <TableHead></TableHead>
+                    </TableRow>
+                  </TableHeader>
+                  <TableBody>
+                    {project.Documents.map((doc) => (
+                      <TableRow key={doc.id}>
+                        <TableCell className="font-medium">{doc.original_name ?? doc.filename}</TableCell>
+                        <TableCell><Badge variant="secondary">{doc.file_type?.toUpperCase() ?? "—"}</Badge></TableCell>
+                        <TableCell className="text-slate-500 text-sm">
+                          {doc.file_size ? `${Math.round(doc.file_size / 1024)} KB` : "—"}
+                        </TableCell>
+                        <TableCell className="text-slate-500 text-sm">
+                          {new Date(doc.uploaded_at).toLocaleDateString()}
+                        </TableCell>
+                        <TableCell className="text-slate-500">{doc.description ?? "—"}</TableCell>
+                        <TableCell>
+                          <a
+                            href={`/api/files/documents/${doc.filename}`}
+                            className="text-blue-600 hover:underline text-sm"
+                            download={doc.original_name ?? doc.filename}
+                          >
+                            Download
+                          </a>
+                        </TableCell>
+                      </TableRow>
+                    ))}
+                  </TableBody>
+                </Table>
+              </CardContent>
+            </Card>
+          )}
         </TabsContent>
       </Tabs>
     </div>

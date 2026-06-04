@@ -8,11 +8,8 @@ interface Props {
   farm: {
     id: number;
     Farm_Name: string | null;
-    Farmer_Name: string | null;
     County: string | null;
     State: string | null;
-    Contact_Phone: string | null;
-    Contact_Email: string | null;
     farm_summary: string | null;
     is_active: boolean;
   };

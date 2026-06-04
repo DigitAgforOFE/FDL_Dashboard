@@ -9,11 +9,8 @@ interface FarmFormProps {
   onSuccess?: () => void;
   initialData?: {
     Farm_Name?: string | null;
-    Farmer_Name?: string | null;
     County?: string | null;
     State?: string | null;
-    Contact_Phone?: string | null;
-    Contact_Email?: string | null;
     farm_summary?: string | null;
     is_active?: boolean;
   };
@@ -22,11 +19,8 @@ interface FarmFormProps {
 
 export function FarmForm({ onSuccess, initialData, farmId }: FarmFormProps) {
   const [farmName, setFarmName] = useState(initialData?.Farm_Name ?? "");
-  const [farmerName, setFarmerName] = useState(initialData?.Farmer_Name ?? "");
   const [county, setCounty] = useState(initialData?.County ?? "");
   const [state, setState] = useState(initialData?.State ?? "");
-  const [phone, setPhone] = useState(initialData?.Contact_Phone ?? "");
-  const [email, setEmail] = useState(initialData?.Contact_Email ?? "");
   const [summary, setSummary] = useState(initialData?.farm_summary ?? "");
   const [isActive, setIsActive] = useState(initialData?.is_active ?? true);
   const [saving, setSaving] = useState(false);
@@ -42,11 +36,8 @@ export function FarmForm({ onSuccess, initialData, farmId }: FarmFormProps) {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           Farm_Name: farmName,
-          Farmer_Name: farmerName,
           County: county,
           State: state,
-          Contact_Phone: phone,
-          Contact_Email: email,
           farm_summary: summary || null,
           is_active: isActive,
         }),
@@ -60,11 +51,8 @@ export function FarmForm({ onSuccess, initialData, farmId }: FarmFormProps) {
   return (
     <form onSubmit={handleSubmit} className="space-y-4">
       <div className="space-y-1.5"><Label>Farm Name</Label><Input value={farmName} onChange={(e) => setFarmName(e.target.value)} required /></div>
-      <div className="space-y-1.5"><Label>Farmer Name</Label><Input value={farmerName} onChange={(e) => setFarmerName(e.target.value)} /></div>
       <div className="space-y-1.5"><Label>County</Label><Input value={county} onChange={(e) => setCounty(e.target.value)} /></div>
       <div className="space-y-1.5"><Label>State</Label><Input value={state} onChange={(e) => setState(e.target.value)} /></div>
-      <div className="space-y-1.5"><Label>Contact Phone</Label><Input value={phone} onChange={(e) => setPhone(e.target.value)} /></div>
-      <div className="space-y-1.5"><Label>Contact Email</Label><Input type="email" value={email} onChange={(e) => setEmail(e.target.value)} /></div>
       <div className="space-y-1.5">
         <Label>Farmer Summary (Markdown)</Label>
         <textarea

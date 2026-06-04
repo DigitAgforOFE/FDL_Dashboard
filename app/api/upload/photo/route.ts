@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { authenticateUpload } from "@/lib/upload-auth";
-import { resolveFarmId, resolveFarmIdForLabMember } from "@/lib/proximity";
+import { resolveFarmId, findFieldAndFarmByLocation, findFieldByLocation } from "@/lib/proximity";
 import fs from "fs";
 import path from "path";
 
@@ -35,11 +35,12 @@ export async function POST(request: Request) {
     const lng = geo.longitude ?? null;
 
     if (auth.kind === "labMember") {
-      const farmId = await resolveFarmIdForLabMember(lat, lng);
+      const { farmId, fieldId } = await findFieldAndFarmByLocation(lat ?? 0, lng ?? 0);
       await prisma.labMemberUpload.create({
         data: {
           lab_member_id: auth.labMember.id,
           farm_id: farmId,
+          field_id: fieldId,
           media_type: "photo",
           filename: filename || null,
           latitude: lat,
@@ -51,10 +52,12 @@ export async function POST(request: Request) {
       });
     } else {
       const farmId = await resolveFarmId(auth.contact, lat, lng);
+      const fieldId = lat != null && lng != null ? await findFieldByLocation(lat, lng) : null;
       await prisma.photo.create({
         data: {
           contact_id: auth.contact.id,
           farm_id: farmId,
+          field_id: fieldId,
           filename,
           latitude: lat,
           longitude: lng,

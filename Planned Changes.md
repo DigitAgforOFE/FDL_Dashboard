@@ -59,11 +59,17 @@
 	
 	The full file structure will be created when the sync client is run, regardless of whether all folders have data. Once the sync command is run, a validation methodology has to be developed to allow data to be pushed or pulled without everwriting changes.
 - [ ] 11. **Field Work Scheduling** Admin should be able to schedule field work for specific farms and tests/drone flights in a calendar in the ui. This needs to be fleshed out more.
-- [ ] 12. **Upload Field Boundaries Button** In the farm page, there needs to be an upload field boundaries box that can handle shp files, geojson and geopackage inputs, as well as handling crs by having the user specify the epsg 
-- [ ] 13. **Spatial Processing Scripts** As it stands, there are a few tasks that must be done each time new spatial data is added. These tasks are:
-	- [ ] Total Area calculation to update dashboard number
-	- [ ] Field Matching for spatial data. check uploaded data against field boundaries to match to field or farm (field uses intersect match, if not in field, use 1000 m near distance matching to match to farm)
-	- [ ] 
+- [x] 12. **Upload Field Boundaries Button** In the farm page, there needs to be an upload field boundaries box that can handle shp files, geojson and geopackage inputs, as well as handling crs by having the user specify the epsg 
+- [x] 13. **Spatial Processing Scripts** As it stands, there are a few tasks that must be done each time new spatial data is added. These tasks are:
+	- [x] Total Area calculation to update dashboard number
+	- [x] Field Matching for spatial data. check uploaded data against field boundaries to match to field or farm (field uses intersect match, if not in field, use 1000 m near distance matching to match to farm)
+	
+- [ ] 14. **Edit Fields Page** Simply being able to delete numerous farm fields by highlighting them in a list in the Farm page is needed.
+- [ ] 15. **Sort and filter for all table views**
+- [x] 16. **Upload Data Button** There should be a data upload portal for unstructured data like pdfs, csvs and docx files. These should be uploaded either in a project page, or in a specific farm page and be assigned to the farm or project level. 
+- [x] 17. **Link Farmer Name and other contact fields to Farmer info in Farmer Page** There should only be one farmer table, the existing farmers and contacts should be merged, and only one table carried forward, but the existing display of both the Farmers tab and the Farmer information in the Farms>farm menu should continue.
+
+
 
 
 

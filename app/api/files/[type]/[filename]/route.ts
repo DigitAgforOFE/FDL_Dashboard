@@ -5,7 +5,7 @@ import path from "path";
 export const runtime = "nodejs";
 
 const DATA_DIR = process.env.DATA_DIR ?? "./upload-data";
-const ALLOWED_TYPES = ["photos", "recordings", "locations"] as const;
+const ALLOWED_TYPES = ["photos", "recordings", "locations", "documents"] as const;
 
 export async function GET(
   _req: Request,

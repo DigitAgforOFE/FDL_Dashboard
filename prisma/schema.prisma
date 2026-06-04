@@ -40,6 +40,7 @@ model Project {
   Recordings         Recording[]
   Locations          Location[]
   LabMemberUploads   LabMemberUpload[]
+  Documents          Document[]
 
   @@map("Projects")
   @@schema("pgntarg2udzj1f3")
@@ -49,9 +50,6 @@ model Farm {
   id            Int       @id @default(autoincrement())
   title         String?
   Farm_Name     String?
-  Farmer_Name   String?
-  Contact_Phone String?
-  Contact_Email String?
   County        String?
   State         String?
   is_active     Boolean   @default(true)
@@ -70,6 +68,7 @@ model Farm {
   Locations        Location[]
   LabMemberUploads LabMemberUpload[]
   FarmExperiments  FarmExperiment[]
+  Documents        Document[]
 
   @@map("Farms")
   @@schema("pgntarg2udzj1f3")
@@ -327,6 +326,7 @@ model Photo {
   id          Int       @id @default(autoincrement())
   contact_id  Int?
   farm_id     Int?
+  field_id    Int?
   project_id  Int?
   filename    String
   latitude    Float?
@@ -350,6 +350,7 @@ model Recording {
   id           Int       @id @default(autoincrement())
   contact_id   Int?
   farm_id      Int?
+  field_id     Int?
   project_id   Int?
   filename     String
   gps_filename String?
@@ -372,6 +373,7 @@ model Note {
   id          Int       @id @default(autoincrement())
   contact_id  Int?
   farm_id     Int?
+  field_id    Int?
   project_id  Int?
   content     String
   latitude    Float?
@@ -394,6 +396,7 @@ model Location {
   id             Int       @id @default(autoincrement())
   contact_id     Int?
   farm_id        Int?
+  field_id       Int?
   project_id     Int?
   name           String?
   track_filename String?
@@ -416,6 +419,7 @@ model LabMemberUpload {
   id             Int       @id @default(autoincrement())
   lab_member_id  Int?
   farm_id        Int?
+  field_id       Int?
   project_id     Int?
   media_type     String    @db.VarChar(20)
   filename       String?
@@ -498,5 +502,23 @@ model ExperimentTreatment {
 
   @@id([experiment_id, treatment_id])
   @@map("Experiment_Treatments")
+  @@schema("pgntarg2udzj1f3")
+}
+
+model Document {
+  id            Int      @id @default(autoincrement())
+  farm_id       Int?
+  project_id    Int?
+  filename      String
+  original_name String?
+  file_type     String?  @db.VarChar(20)
+  file_size     Int?
+  description   String?
+  uploaded_at   DateTime @default(now())
+
+  Farm    Farm?    @relation(fields: [farm_id], references: [id])
+  Project Project? @relation(fields: [project_id], references: [id])
+
+  @@map("Documents")
   @@schema("pgntarg2udzj1f3")
 }

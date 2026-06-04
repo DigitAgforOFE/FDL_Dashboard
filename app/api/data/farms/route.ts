@@ -36,8 +36,14 @@ export async function POST(req: Request) {
   if (!Farm_Name) return NextResponse.json({ error: "Farm_Name is required" }, { status: 400 });
 
   const farm = await prisma.farm.create({
-    data: { Farm_Name, Farmer_Name, Contact_Phone, Contact_Email, County, State, title },
+    data: { Farm_Name, County, State, title },
   });
+
+  if (Farmer_Name) {
+    await prisma.contact.create({
+      data: { name: Farmer_Name, phone: Contact_Phone ?? null, email: Contact_Email ?? null, farms_id: farm.id, is_lab_member: false, token: "" },
+    });
+  }
 
   return NextResponse.json(farm, { status: 201 });
 }

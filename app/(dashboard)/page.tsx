@@ -28,6 +28,7 @@ async function getDashboardData() {
     projectsByStatus,
     farmCount,
     allZones,
+    allFields,
     upcomingTestCount,
     upcomingTests,
     projects,
@@ -40,6 +41,9 @@ async function getDashboardData() {
     prisma.farm.count(),
     prisma.experimentZone.findMany({
       select: { geometry: true, project_id: true },
+    }),
+    prisma.field.findMany({
+      select: { geometry: true },
     }),
     prisma.test.count({
       where: {
@@ -74,6 +78,11 @@ async function getDashboardData() {
     0
   );
 
+  const totalFieldAcres = allFields.reduce(
+    (sum, f) => sum + geojsonAreaAcres(f.geometry),
+    0
+  );
+
   // Per-project stats
   const projectMap: Record<number, { id: number; name: string; zoneCount: number; totalAcres: number }> = {};
   for (const p of projects) {
@@ -99,6 +108,7 @@ async function getDashboardData() {
     farmCount,
     zoneCount,
     totalAcres,
+    totalFieldAcres,
     projectStats,
     upcomingTestCount,
     upcomingTests,
@@ -116,6 +126,7 @@ export default async function DashboardPage() {
   };
 
   const hasArea = data.totalAcres > 0;
+  const hasFieldArea = data.totalFieldAcres > 0;
 
   return (
     <div className="space-y-6">
@@ -166,19 +177,19 @@ export default async function DashboardPage() {
           <CardHeader className="pb-2">
             <CardTitle className="text-sm font-medium text-slate-500 flex items-center gap-2">
               <Map className="h-4 w-4" />
-              Total Zone Area
+              Enrolled Area
             </CardTitle>
           </CardHeader>
           <CardContent>
-            {hasArea ? (
+            {hasFieldArea ? (
               <>
-                <div className="text-3xl font-bold">{data.totalAcres.toFixed(1)}</div>
-                <p className="text-xs text-slate-400 mt-2">Acres across all zones</p>
+                <div className="text-3xl font-bold">{data.totalFieldAcres.toFixed(1)}</div>
+                <p className="text-xs text-slate-400 mt-2">Acres across all farm fields</p>
               </>
             ) : (
               <>
                 <div className="text-2xl font-bold text-slate-400">—</div>
-                <p className="text-xs text-slate-400 mt-2">No geometry loaded yet</p>
+                <p className="text-xs text-slate-400 mt-2">No field boundaries uploaded yet</p>
               </>
             )}
           </CardContent>

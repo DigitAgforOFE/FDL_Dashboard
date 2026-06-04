@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { authenticateUpload } from "@/lib/upload-auth";
-import { resolveFarmId, resolveFarmIdForLabMember } from "@/lib/proximity";
+import { resolveFarmId, findFieldAndFarmByLocation, findFieldByLocation } from "@/lib/proximity";
 
 export const runtime = "nodejs";
 
@@ -14,11 +14,12 @@ export async function POST(request: Request) {
     const { content = "", latitude = null, longitude = null, timestamp = "" } = body;
 
     if (auth.kind === "labMember") {
-      const farmId = await resolveFarmIdForLabMember(latitude, longitude);
+      const { farmId, fieldId } = await findFieldAndFarmByLocation(latitude ?? 0, longitude ?? 0);
       await prisma.labMemberUpload.create({
         data: {
           lab_member_id: auth.labMember.id,
           farm_id: farmId,
+          field_id: fieldId,
           media_type: "note",
           content: content || null,
           latitude: latitude ?? null,
@@ -29,10 +30,12 @@ export async function POST(request: Request) {
       });
     } else {
       const farmId = await resolveFarmId(auth.contact, latitude, longitude);
+      const fieldId = latitude != null && longitude != null ? await findFieldByLocation(latitude, longitude) : null;
       await prisma.note.create({
         data: {
           contact_id: auth.contact.id,
           farm_id: farmId,
+          field_id: fieldId,
           content,
           latitude: latitude ?? null,
           longitude: longitude ?? null,

@@ -2,11 +2,14 @@ import { prisma } from "@/lib/prisma";
 import { FarmsClient } from "./farms-client";
 
 export default async function FarmsPage() {
-  const farms = await prisma.farm.findMany({ orderBy: { id: "asc" } });
+  const farms = await prisma.farm.findMany({
+    orderBy: { id: "asc" },
+    include: { Contacts: { where: { is_lab_member: false }, take: 1 } },
+  });
   const data = farms.map((f) => ({
     id: f.id,
     Farm_Name: f.Farm_Name,
-    Farmer_Name: f.Farmer_Name,
+    Farmer_Name: f.Contacts[0]?.name ?? null,
     County: f.County,
     State: f.State,
     is_active: f.is_active,

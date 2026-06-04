@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { authenticateUpload } from "@/lib/upload-auth";
-import { resolveFarmId, resolveFarmIdForLabMember, firstPointFromGeoJSON } from "@/lib/proximity";
+import { resolveFarmId, findFieldAndFarmByLocation, findFieldByLocation, firstPointFromGeoJSON } from "@/lib/proximity";
 import fs from "fs";
 import path from "path";
 
@@ -37,17 +37,21 @@ export async function POST(request: Request) {
 
     const firstPt = gpsTrack ? firstPointFromGeoJSON(gpsTrack) : null;
 
+    const ptLat = firstPt?.lat ?? null;
+    const ptLng = firstPt?.lng ?? null;
+
     if (auth.kind === "labMember") {
-      const farmId = await resolveFarmIdForLabMember(firstPt?.lat ?? null, firstPt?.lng ?? null);
+      const { farmId, fieldId } = await findFieldAndFarmByLocation(ptLat ?? 0, ptLng ?? 0);
       await prisma.labMemberUpload.create({
         data: {
           lab_member_id: auth.labMember.id,
           farm_id: farmId,
+          field_id: fieldId,
           media_type: "recording",
           filename: filename || null,
           gps_filename: gpsFilename,
-          latitude: firstPt?.lat ?? null,
-          longitude: firstPt?.lng ?? null,
+          latitude: ptLat,
+          longitude: ptLng,
           start_time: startTime ? new Date(startTime) : null,
           end_time: endTime ? new Date(endTime) : null,
           date_collected: startTime ? new Date(startTime) : null,
@@ -55,11 +59,13 @@ export async function POST(request: Request) {
         },
       });
     } else {
-      const farmId = await resolveFarmId(auth.contact, firstPt?.lat ?? null, firstPt?.lng ?? null);
+      const farmId = await resolveFarmId(auth.contact, ptLat, ptLng);
+      const fieldId = ptLat != null && ptLng != null ? await findFieldByLocation(ptLat, ptLng) : null;
       await prisma.recording.create({
         data: {
           contact_id: auth.contact.id,
           farm_id: farmId,
+          field_id: fieldId,
           filename,
           gps_filename: gpsFilename,
           start_time: startTime ? new Date(startTime) : null,

@@ -19,6 +19,7 @@ import FarmMap from "@/components/farm-map-wrapper";
 import ReactMarkdown from "react-markdown";
 import { FarmExperimentsTab } from "@/components/farm-experiments-tab";
 import { FieldBoundaryUpload } from "@/components/field-boundary-upload";
+import { DocumentUpload } from "@/components/document-upload";
 
 const STATUS_LABELS: Record<number, { label: string; variant: "default" | "secondary" | "outline" }> = {
   1: { label: "Unassigned", variant: "outline" },
@@ -70,6 +71,9 @@ export default async function FarmDetailPage({ params }: { params: Promise<{ id:
           orderBy: { received_at: "desc" },
           include: { LabMember: { select: { Name: true } } },
         },
+        Documents: {
+          orderBy: { uploaded_at: "desc" },
+        },
       },
     }),
     prisma.project.findMany({ select: { id: true, Project_Name: true } }),
@@ -85,6 +89,8 @@ export default async function FarmDetailPage({ params }: { params: Promise<{ id:
   ]);
 
   if (!farm) notFound();
+
+  const primaryContact = farm.Contacts.find((c) => !c.is_lab_member);
 
   const linkedProjectIds = new Set(farm.ProjectFarms.map((pf) => pf.Projects_id));
   const availableProjects = allProjects
@@ -196,7 +202,7 @@ export default async function FarmDetailPage({ params }: { params: Promise<{ id:
           <h2 className="text-2xl font-bold text-slate-900">
             {farm.Farm_Name ?? `Farm #${farm.id}`}
           </h2>
-          <p className="text-slate-500">{farm.Farmer_Name ? `Farmer: ${farm.Farmer_Name}` : ""}</p>
+          <p className="text-slate-500">{primaryContact?.name ? `Farmer: ${primaryContact.name}` : ""}</p>
         </div>
         <Link href={`/farms/${farm.id}/edit`} className={cn(buttonVariants({ variant: "outline", size: "sm" }))}>Edit</Link>
       </div>
@@ -207,6 +213,7 @@ export default async function FarmDetailPage({ params }: { params: Promise<{ id:
           <TabsTrigger value="contacts">Contacts ({farm.Contacts.length})</TabsTrigger>
           <TabsTrigger value="summary">Farmer Summary</TabsTrigger>
           <TabsTrigger value="experiments">Experiments</TabsTrigger>
+          <TabsTrigger value="documents">Documents ({farm.Documents.length})</TabsTrigger>
           <TabsTrigger value="uploads">Data Uploads ({totalUploads})</TabsTrigger>
         </TabsList>
 
@@ -217,11 +224,11 @@ export default async function FarmDetailPage({ params }: { params: Promise<{ id:
             <CardContent>
               <div className="grid grid-cols-2 gap-4 text-sm">
                 <div><span className="text-slate-500">Farm Name</span><p className="font-medium mt-0.5">{farm.Farm_Name ?? "—"}</p></div>
-                <div><span className="text-slate-500">Farmer Name</span><p className="font-medium mt-0.5">{farm.Farmer_Name ?? "—"}</p></div>
+                <div><span className="text-slate-500">Farmer Name</span><p className="font-medium mt-0.5">{primaryContact?.name ?? "—"}</p></div>
                 <div><span className="text-slate-500">County</span><p className="font-medium mt-0.5">{farm.County ?? "—"}</p></div>
                 <div><span className="text-slate-500">State</span><p className="font-medium mt-0.5">{farm.State ?? "—"}</p></div>
-                <div><span className="text-slate-500">Phone</span><p className="font-medium mt-0.5">{farm.Contact_Phone ?? "—"}</p></div>
-                <div><span className="text-slate-500">Email</span><p className="font-medium mt-0.5">{farm.Contact_Email ?? "—"}</p></div>
+                <div><span className="text-slate-500">Phone</span><p className="font-medium mt-0.5">{primaryContact?.phone ?? "—"}</p></div>
+                <div><span className="text-slate-500">Email</span><p className="font-medium mt-0.5">{primaryContact?.email ?? "—"}</p></div>
               </div>
             </CardContent>
           </Card>
@@ -372,6 +379,54 @@ export default async function FarmDetailPage({ params }: { params: Promise<{ id:
             }
             allTreatments={allTreatments}
           />
+        </TabsContent>
+
+        {/* ── Documents ── */}
+        <TabsContent value="documents" className="mt-4 space-y-4">
+          <DocumentUpload farmId={farm.id} />
+          {farm.Documents.length > 0 && (
+            <Card>
+              <CardHeader><CardTitle className="text-base">Uploaded Documents</CardTitle></CardHeader>
+              <CardContent>
+                <Table>
+                  <TableHeader>
+                    <TableRow>
+                      <TableHead>Name</TableHead>
+                      <TableHead>Type</TableHead>
+                      <TableHead>Size</TableHead>
+                      <TableHead>Uploaded</TableHead>
+                      <TableHead>Description</TableHead>
+                      <TableHead></TableHead>
+                    </TableRow>
+                  </TableHeader>
+                  <TableBody>
+                    {farm.Documents.map((doc) => (
+                      <TableRow key={doc.id}>
+                        <TableCell className="font-medium">{doc.original_name ?? doc.filename}</TableCell>
+                        <TableCell><Badge variant="secondary">{doc.file_type?.toUpperCase() ?? "—"}</Badge></TableCell>
+                        <TableCell className="text-slate-500 text-sm">
+                          {doc.file_size ? `${Math.round(doc.file_size / 1024)} KB` : "—"}
+                        </TableCell>
+                        <TableCell className="text-slate-500 text-sm">
+                          {new Date(doc.uploaded_at).toLocaleDateString()}
+                        </TableCell>
+                        <TableCell className="text-slate-500">{doc.description ?? "—"}</TableCell>
+                        <TableCell>
+                          <a
+                            href={`/api/files/documents/${doc.filename}`}
+                            className="text-blue-600 hover:underline text-sm"
+                            download={doc.original_name ?? doc.filename}
+                          >
+                            Download
+                          </a>
+                        </TableCell>
+                      </TableRow>
+                    ))}
+                  </TableBody>
+                </Table>
+              </CardContent>
+            </Card>
+          )}
         </TabsContent>
 
         {/* ── Data Uploads ── */}
