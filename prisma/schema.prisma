@@ -56,8 +56,9 @@ model Project {
   Notes              Note[]
   Recordings         Recording[]
   Locations          Location[]
-  LabMemberUploads   LabMemberUpload[]
+  Videos             Video[]
   Documents          Document[]
+  LabMemberUploads   LabMemberUpload[]
 
   @@map("Projects")
   @@schema("pgntarg2udzj1f3")
@@ -83,9 +84,11 @@ model Farm {
   Notes            Note[]
   Recordings       Recording[]
   Locations        Location[]
+  Videos           Video[]
+  Documents        Document[]
+  ContactCards     WhatsAppContactCard[]
   LabMemberUploads LabMemberUpload[]
   FarmExperiments  FarmExperiment[]
-  Documents        Document[]
 
   @@map("Farms")
   @@schema("pgntarg2udzj1f3")
@@ -315,6 +318,9 @@ model Contact {
   Recordings Recording[]
   Notes      Note[]
   Locations  Location[]
+  Videos     Video[]
+  Documents  Document[]
+  ContactCards WhatsAppContactCard[]
 
   @@map("Contacts")
   @@schema("pgntarg2udzj1f3")
@@ -332,6 +338,7 @@ model Photo {
   note        String?
   timestamp   DateTime?
   status      Int       @default(2)
+  ticket_ref  String?                         // human-readable OFEDashBot reference
   category    String?   @db.VarChar(100)
   description String?
   received_at DateTime  @default(now())
@@ -355,6 +362,7 @@ model Recording {
   start_time   DateTime?
   end_time     DateTime?
   status       Int       @default(2)
+  ticket_ref   String?                         // human-readable OFEDashBot reference
   category     String?   @db.VarChar(100)
   description  String?
   received_at  DateTime  @default(now())
@@ -378,6 +386,7 @@ model Note {
   longitude   Float?
   timestamp   DateTime?
   status      Int       @default(2)
+  ticket_ref  String?                         // human-readable OFEDashBot reference
   category    String?   @db.VarChar(100)
   description String?
   received_at DateTime  @default(now())
@@ -401,6 +410,7 @@ model Location {
   start_time     DateTime?
   end_time       DateTime?
   status         Int       @default(2)
+  ticket_ref     String?                         // human-readable OFEDashBot reference
   category       String?   @db.VarChar(100)
   description    String?
   received_at    DateTime  @default(now())
@@ -503,20 +513,89 @@ model ExperimentTreatment {
   @@schema("pgntarg2udzj1f3")
 }
 
+model Video {
+  id          Int       @id @default(autoincrement())
+  contact_id  Int?
+  farm_id     Int?
+  project_id  Int?
+  filename    String
+  latitude    Float?
+  longitude   Float?
+  note        String?
+  timestamp   DateTime?
+  status      Int       @default(2)
+  ticket_ref  String?                         // human-readable OFEDashBot reference
+  category    String?   @db.VarChar(100)
+  description String?
+  received_at DateTime  @default(now())
+
+  Contact Contact? @relation(fields: [contact_id], references: [id])
+  Farm    Farm?    @relation(fields: [farm_id], references: [id])
+  Project Project? @relation(fields: [project_id], references: [id])
+
+  @@map("Videos")
+  @@schema("pgntarg2udzj1f3")
+}
+
+// Unified table: serves both dashboard farm/project file attachments
+// (source = "dashboard") and inbound WhatsApp documents (source = "whatsapp").
 model Document {
-  id            Int      @id @default(autoincrement())
+  id            Int       @id @default(autoincrement())
+  source        String    @default("dashboard")  // dashboard | whatsapp
+  contact_id    Int?
   farm_id       Int?
   project_id    Int?
   filename      String
-  original_name String?
-  file_type     String?  @db.VarChar(20)
-  file_size     Int?
+  original_name String?                           // dashboard uploads
+  file_type     String?   @db.VarChar(20)         // dashboard uploads
+  file_size     Int?                              // dashboard uploads
+  note          String?                           // whatsapp captions
+  category      String?   @db.VarChar(100)
   description   String?
-  uploaded_at   DateTime @default(now())
+  timestamp     DateTime?                          // whatsapp message time
+  status        Int       @default(2)
+  ticket_ref    String?                            // human-readable OFEDashBot reference
+  uploaded_at   DateTime  @default(now())
 
+  Contact Contact? @relation(fields: [contact_id], references: [id])
   Farm    Farm?    @relation(fields: [farm_id], references: [id])
   Project Project? @relation(fields: [project_id], references: [id])
 
   @@map("Documents")
+  @@schema("pgntarg2udzj1f3")
+}
+
+model WhatsAppContactCard {
+  id          Int       @id @default(autoincrement())
+  contact_id  Int?
+  farm_id     Int?
+  shared_name  String
+  shared_phone String?
+  shared_email String?
+  shared_org   String?
+  note        String?
+  status      Int       @default(2)
+  ticket_ref  String?                         // human-readable OFEDashBot reference
+  received_at DateTime  @default(now())
+
+  Contact Contact? @relation(fields: [contact_id], references: [id])
+  Farm    Farm?    @relation(fields: [farm_id], references: [id])
+
+  @@map("WhatsApp_Contact_Cards")
+  @@schema("pgntarg2udzj1f3")
+}
+
+model ReportingSubscription {
+  id           Int       @id @default(autoincrement())
+  label        String                          // e.g. "Agrivoltaics team"
+  emails       String                          // semicolon-separated list
+  frequency    String    @default("weekly")    // weekly | biweekly | monthly
+  active       Boolean   @default(true)
+  contact_ids  String                          // JSON array of contact IDs
+  last_sent_at DateTime?
+  created_at   DateTime  @default(now())
+  updated_at   DateTime  @updatedAt
+
+  @@map("Reporting_Subscriptions")
   @@schema("pgntarg2udzj1f3")
 }

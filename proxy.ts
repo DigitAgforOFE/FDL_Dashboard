@@ -6,11 +6,16 @@ export default auth((req) => {
   const isLoggedIn = !!req.auth;
 
   const isAuthPage = nextUrl.pathname.startsWith("/login");
-  const isApiAuth = nextUrl.pathname.startsWith("/api/auth");
+  const isApiAuth  = nextUrl.pathname.startsWith("/api/auth");
 
-  const isMobileApi = nextUrl.pathname.startsWith("/api/upload") ||
-                      nextUrl.pathname.startsWith("/api/files") ||
-                      nextUrl.pathname.startsWith("/api/data") ||
+  // Endpoints called by external services (mobile app, OFEDashBot) that must
+  // not require a browser session. Route handlers still enforce their own
+  // bearer-token / role checks.
+  const isMobileApi = nextUrl.pathname.startsWith("/api/upload")   ||
+                      nextUrl.pathname.startsWith("/api/files")    ||
+                      nextUrl.pathname.startsWith("/api/data")     ||
+                      nextUrl.pathname.startsWith("/api/contacts") ||
+                      nextUrl.pathname.startsWith("/api/whatsapp") ||
                       (nextUrl.pathname.startsWith("/api/farms/") && nextUrl.pathname.endsWith("/summary"));
 
   if (isApiAuth || isMobileApi) return NextResponse.next();

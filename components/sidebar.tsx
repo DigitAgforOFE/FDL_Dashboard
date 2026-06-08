@@ -20,6 +20,8 @@ import {
   Upload,
   SlidersHorizontal,
   Settings2,
+  MessageCircle,
+  BarChart2,
 } from "lucide-react";
 import type { Role } from "@/lib/roles";
 
@@ -29,6 +31,8 @@ const dataNav = [
   { href: "/lab-members", label: "Lab Members", icon: Users },
   { href: "/lab-uploads", label: "Data Uploads", icon: Upload },
   { href: "/data-sorting", label: "Data Sorting", icon: SlidersHorizontal },
+  { href: "/whatsapp", label: "WhatsApp", icon: MessageCircle },
+  { href: "/activity-report", label: "Activity Report", icon: BarChart2 },
 ];
 
 const fieldOpsNav = [
@@ -64,7 +68,7 @@ export function Sidebar({ role }: SidebarProps) {
       <div className="px-4 py-5 border-b border-slate-700">
         <div className="flex items-center gap-2">
           <ChevronRight className="h-5 w-5 text-emerald-400" />
-          <span className="text-lg font-bold tracking-tight">OFE Dashboard</span>
+          <span className="text-lg font-bold tracking-tight">FDL Dashboard</span>
         </div>
       </div>
 
