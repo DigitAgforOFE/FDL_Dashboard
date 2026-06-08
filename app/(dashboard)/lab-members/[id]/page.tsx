@@ -1,5 +1,9 @@
 import { prisma } from "@/lib/prisma";
 import { notFound } from "next/navigation";
+import { auth } from "@/lib/auth";
+import { getEditMode } from "@/lib/edit-mode";
+import { canEdit, canDelete, type Role } from "@/lib/roles";
+import { DeleteLabMemberButton } from "./delete-button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { buttonVariants } from "@/components/ui/button";
@@ -32,10 +36,14 @@ const MEDIA_ICON: Record<string, string> = {
 
 export default async function LabMemberDetailPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
-  const memberId = parseInt(id);
 
-  const member = await prisma.labMember.findUnique({
-    where: { id: memberId },
+  const [session, editMode] = await Promise.all([auth(), getEditMode()]);
+  const role = (session?.user?.role ?? "viewer") as Role;
+  const showEdit = canEdit(role);
+  const showDelete = canDelete(role, editMode);
+
+  const member = await prisma.user.findUnique({
+    where: { id },
     include: {
       LabMemberUploads: {
         include: { Farm: { select: { id: true, Farm_Name: true } } },
@@ -53,17 +61,19 @@ export default async function LabMemberDetailPage({ params }: { params: Promise<
           <div className="flex items-center gap-2 text-sm text-slate-500 mb-1">
             <Link href="/lab-members" className="hover:text-slate-900">Lab Members</Link>
             <span>/</span>
-            <span>{member.Name ?? `Member #${member.id}`}</span>
+            <span>{member.name ?? member.email}</span>
           </div>
-          <h2 className="text-2xl font-bold text-slate-900">{member.Name ?? `Member #${member.id}`}</h2>
-          {member.Position && <p className="text-slate-500">{member.Position}</p>}
+          <h2 className="text-2xl font-bold text-slate-900">{member.name ?? member.email}</h2>
+          {member.position && <p className="text-slate-500">{member.position}</p>}
         </div>
-        <Link
-          href={`/lab-members/${member.id}/edit`}
-          className={cn(buttonVariants({ variant: "outline", size: "sm" }))}
-        >
-          Edit
-        </Link>
+        <div className="flex items-center gap-2">
+          {showEdit && (
+            <Link href={`/lab-members/${member.id}/edit`} className={cn(buttonVariants({ variant: "outline", size: "sm" }))}>Edit</Link>
+          )}
+          {showDelete && (
+            <DeleteLabMemberButton memberId={member.id} memberName={member.name} />
+          )}
+        </div>
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -72,28 +82,36 @@ export default async function LabMemberDetailPage({ params }: { params: Promise<
           <CardContent>
             <div className="grid grid-cols-1 gap-3 text-sm">
               <div>
+                <span className="text-slate-500">Email</span>
+                <p className="font-medium mt-0.5">{member.email}</p>
+              </div>
+              <div>
                 <span className="text-slate-500">Status</span>
                 <p className="font-medium mt-0.5">
-                  {member.Status ? (
-                    <Badge variant={member.Status === "Active" ? "default" : "secondary"}>
-                      {member.Status}
+                  {member.status ? (
+                    <Badge variant={member.status === "Active" ? "default" : "secondary"}>
+                      {member.status}
                     </Badge>
                   ) : "—"}
                 </p>
               </div>
               <div>
                 <span className="text-slate-500">Phone</span>
-                <p className="font-medium mt-0.5">{member.Contact_Phone ?? "—"}</p>
-              </div>
-              <div>
-                <span className="text-slate-500">Email</span>
-                <p className="font-medium mt-0.5">{member.Contact_Email ?? "—"}</p>
+                <p className="font-medium mt-0.5">{member.contact_phone ?? "—"}</p>
               </div>
               <div>
                 <span className="text-slate-500">FAA Part 107</span>
                 <p className="font-medium mt-0.5">
-                  <Badge variant={member.FAA_Part_107 ? "default" : "outline"}>
-                    {member.FAA_Part_107 ? "Certified" : "No"}
+                  <Badge variant={member.faa_part_107 ? "default" : "outline"}>
+                    {member.faa_part_107 ? "Certified" : "No"}
+                  </Badge>
+                </p>
+              </div>
+              <div>
+                <span className="text-slate-500">Dashboard Role</span>
+                <p className="font-medium mt-0.5">
+                  <Badge variant={member.role === "admin" ? "default" : "secondary"}>
+                    {member.role}
                   </Badge>
                 </p>
               </div>
@@ -104,23 +122,23 @@ export default async function LabMemberDetailPage({ params }: { params: Promise<
         <Card>
           <CardHeader><CardTitle className="text-base">Mobile App Access</CardTitle></CardHeader>
           <CardContent>
-            {member.token ? (
+            {member.bearer_token ? (
               <>
                 <p className="text-sm text-slate-500 mb-3">
-                  Scan this QR code with the FarmerDataLogger app to connect this lab member.
+                  Scan this QR code with the FarmerDataLogger app to connect this member.
                 </p>
-                <LabMemberQrDisplay memberId={member.id} />
+                <LabMemberQrDisplay userId={member.id} />
                 <div className="mt-3">
-                  <GrantAccessButton memberId={member.id} />
+                  <GrantAccessButton userId={member.id} />
                   <p className="text-xs text-slate-400 mt-1">Regenerates and invalidates the old code.</p>
                 </div>
               </>
             ) : (
               <>
                 <p className="text-sm text-slate-500 mb-4">
-                  No app access yet. Generate a QR code to allow this lab member to upload data.
+                  No app access yet. Generate a QR code to allow this member to upload data.
                 </p>
-                <GrantAccessButton memberId={member.id} />
+                <GrantAccessButton userId={member.id} />
               </>
             )}
           </CardContent>

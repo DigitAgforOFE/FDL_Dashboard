@@ -2,13 +2,11 @@ import NextAuth from "next-auth";
 import Credentials from "next-auth/providers/credentials";
 import { prisma } from "@/lib/prisma";
 
-// Simple password comparison - in production use bcrypt
 async function verifyPassword(plain: string, stored: string): Promise<boolean> {
   // Bootstrap: if no users exist, accept admin@lab.com / admin123
   if (stored === "__bootstrap__") {
     return plain === "admin123";
   }
-  // Try bcrypt if available
   try {
     const bcrypt = await import("bcryptjs");
     return bcrypt.compare(plain, stored);
@@ -31,28 +29,21 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
         const email = credentials.email as string;
         const password = credentials.password as string;
 
-        // Check if bootstrap account
         if (email === "admin@lab.com") {
           let userCount = 0;
           try {
             userCount = await prisma.user.count();
           } catch {
-            // Table might not exist yet
             userCount = 0;
           }
 
           if (userCount === 0) {
             if (await verifyPassword(password, "__bootstrap__")) {
-              return {
-                id: "bootstrap",
-                email: "admin@lab.com",
-                name: "Admin",
-              };
+              return { id: "bootstrap", email: "admin@lab.com", name: "Admin" };
             }
           }
         }
 
-        // Normal user lookup
         try {
           const user = await prisma.user.findUnique({ where: { email } });
           if (!user) return null;
@@ -60,7 +51,6 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
           if (!valid) return null;
           return { id: user.id, email: user.email, name: user.name };
         } catch {
-          // If users table doesn't exist, allow bootstrap
           if (email === "admin@lab.com" && password === "admin123") {
             return { id: "bootstrap", email: "admin@lab.com", name: "Admin" };
           }
@@ -80,12 +70,27 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
     async jwt({ token, user }) {
       if (user) {
         token.id = user.id;
+        // Bootstrap account is always admin
+        if (user.id === "bootstrap") {
+          token.role = "admin";
+        } else {
+          try {
+            const dbUser = await prisma.user.findUnique({
+              where: { id: user.id as string },
+              select: { role: true },
+            });
+            token.role = (dbUser?.role ?? "member") as "admin" | "member" | "viewer";
+          } catch {
+            token.role = "member";
+          }
+        }
       }
       return token;
     },
     async session({ session, token }) {
       if (token && session.user) {
-        (session.user as { id?: string }).id = token.id as string;
+        (session.user as { id?: string; role?: string }).id = token.id as string;
+        (session.user as { id?: string; role?: string }).role = (token.role ?? "member") as string;
       }
       return session;
     },

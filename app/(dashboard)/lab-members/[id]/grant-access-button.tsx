@@ -5,13 +5,13 @@ import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui/button";
 import { Smartphone } from "lucide-react";
 
-export function GrantAccessButton({ memberId }: { memberId: number }) {
+export function GrantAccessButton({ userId }: { userId: string }) {
   const [loading, setLoading] = useState(false);
   const router = useRouter();
 
   async function handleGrant() {
     setLoading(true);
-    await fetch(`/api/lab-members/${memberId}/token`, { method: "POST" });
+    await fetch(`/api/lab-members/${userId}/token`, { method: "POST" });
     router.refresh();
     setLoading(false);
   }

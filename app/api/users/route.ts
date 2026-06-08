@@ -1,16 +1,22 @@
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
+import { auth } from "@/lib/auth";
+import { isAdmin } from "@/lib/roles";
 import bcrypt from "bcryptjs";
 
 export async function GET() {
   const users = await prisma.user.findMany({
-    select: { id: true, name: true, email: true, createdAt: true },
+    select: { id: true, name: true, email: true, role: true, createdAt: true },
     orderBy: { createdAt: "asc" },
   });
   return NextResponse.json(users);
 }
 
 export async function POST(req: Request) {
+  const session = await auth();
+  if (!session?.user) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  if (!isAdmin(session.user.role)) return NextResponse.json({ error: "Forbidden" }, { status: 403 });
+
   const body = await req.json();
   const { name, email, password } = body;
   if (!email || !password) {
@@ -23,7 +29,7 @@ export async function POST(req: Request) {
   const hashed = await bcrypt.hash(password, 12);
   const user = await prisma.user.create({
     data: { name: name || null, email, password: hashed },
-    select: { id: true, name: true, email: true, createdAt: true },
+    select: { id: true, name: true, email: true, role: true, createdAt: true },
   });
   return NextResponse.json(user, { status: 201 });
 }

@@ -17,18 +17,18 @@ import {
   Beaker,
   ChevronRight,
   BookUser,
-  ShieldCheck,
   Upload,
   SlidersHorizontal,
+  Settings2,
 } from "lucide-react";
+import type { Role } from "@/lib/roles";
 
-const adminNav = [
+const dataNav = [
   { href: "/", label: "Dashboard", icon: LayoutDashboard },
   { href: "/contacts", label: "Farmers", icon: BookUser },
   { href: "/lab-members", label: "Lab Members", icon: Users },
   { href: "/lab-uploads", label: "Data Uploads", icon: Upload },
   { href: "/data-sorting", label: "Data Sorting", icon: SlidersHorizontal },
-  { href: "/users", label: "Users", icon: ShieldCheck },
 ];
 
 const fieldOpsNav = [
@@ -46,8 +46,18 @@ const referenceNav = [
   { href: "/treatment-protocols", label: "Treatment Protocols", icon: FlaskConical },
 ];
 
-export function Sidebar() {
+interface SidebarProps {
+  role: Role;
+}
+
+export function Sidebar({ role }: SidebarProps) {
   const pathname = usePathname();
+
+  const sections = [
+    { label: "Data Management", items: dataNav },
+    { label: "Field Operations", items: fieldOpsNav },
+    { label: "Reference Data", items: referenceNav },
+  ];
 
   return (
     <aside className="w-60 min-h-screen bg-slate-900 text-slate-100 flex flex-col shrink-0">
@@ -59,11 +69,7 @@ export function Sidebar() {
       </div>
 
       <nav className="flex-1 px-3 py-4 space-y-6 overflow-y-auto">
-        {[
-          { label: "Admin", items: adminNav },
-          { label: "Field Operations", items: fieldOpsNav },
-          { label: "Reference Data", items: referenceNav },
-        ].map(({ label, items }) => (
+        {sections.map(({ label, items }) => (
           <div key={label}>
             <p className="px-2 mb-2 text-xs font-semibold text-slate-400 uppercase tracking-wider">
               {label}
@@ -88,6 +94,30 @@ export function Sidebar() {
             </ul>
           </div>
         ))}
+
+        {role === "admin" && (
+          <div>
+            <p className="px-2 mb-2 text-xs font-semibold text-slate-400 uppercase tracking-wider">
+              Admin
+            </p>
+            <ul className="space-y-0.5">
+              <li>
+                <Link
+                  href="/admin"
+                  className={cn(
+                    "flex items-center gap-2.5 px-2 py-1.5 rounded-md text-sm transition-colors",
+                    pathname === "/admin"
+                      ? "bg-emerald-600 text-white"
+                      : "text-slate-300 hover:bg-slate-800 hover:text-white"
+                  )}
+                >
+                  <Settings2 className="h-4 w-4 shrink-0" />
+                  Admin Panel
+                </Link>
+              </li>
+            </ul>
+          </div>
+        )}
       </nav>
     </aside>
   );

@@ -8,7 +8,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 
 interface RelationPickerProps {
   label: string;
-  options: { id: number; name: string }[];
+  options: { id: number | string; name: string }[];
   apiPath: string;
 }
 
@@ -25,7 +25,7 @@ export function RelationPicker({ label, options, apiPath }: RelationPickerProps)
       await fetch(apiPath, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ id: parseInt(selected) }),
+        body: JSON.stringify({ id: selected }),
       });
       setOpen(false);
       setSelected("");

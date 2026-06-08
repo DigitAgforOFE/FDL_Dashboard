@@ -1,5 +1,9 @@
 import { prisma } from "@/lib/prisma";
 import { notFound } from "next/navigation";
+import { auth } from "@/lib/auth";
+import { getEditMode } from "@/lib/edit-mode";
+import { canEdit, canDelete, type Role } from "@/lib/roles";
+import { DeleteFieldButton } from "./delete-button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -21,6 +25,11 @@ import FieldMapWrapper from "@/components/field-map-wrapper";
 export default async function FieldDetailPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
   const fieldId = parseInt(id);
+
+  const [session, editMode] = await Promise.all([auth(), getEditMode()]);
+  const role = (session?.user?.role ?? "viewer") as Role;
+  const showEdit = canEdit(role);
+  const showDelete = canDelete(role, editMode);
 
   const [field, allTests, allCrops, allDrones] = await Promise.all([
     prisma.field.findUnique({
@@ -73,7 +82,14 @@ export default async function FieldDetailPage({ params }: { params: Promise<{ id
             </p>
           )}
         </div>
-        <Link href={`/fields/${field.id}/edit`} className={cn(buttonVariants({ variant: "outline", size: "sm" }))}>Edit</Link>
+        <div className="flex items-center gap-2">
+          {showEdit && (
+            <Link href={`/fields/${field.id}/edit`} className={cn(buttonVariants({ variant: "outline", size: "sm" }))}>Edit</Link>
+          )}
+          {showDelete && (
+            <DeleteFieldButton fieldId={field.id} fieldName={field.Name} />
+          )}
+        </div>
       </div>
 
       <Tabs defaultValue="overview">

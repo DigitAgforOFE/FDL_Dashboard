@@ -8,7 +8,7 @@ import { Pencil } from "lucide-react";
 
 interface FieldRow { id: number; Name: string | null; Farm_Name: string | null; boundary_source: string | null; hasGeometry: boolean }
 
-export function FieldsClient({ data }: { data: FieldRow[] }) {
+export function FieldsClient({ data, canCreate }: { data: FieldRow[]; canCreate?: boolean }) {
   const router = useRouter();
 
   const columns = [
@@ -45,7 +45,7 @@ export function FieldsClient({ data }: { data: FieldRow[] }) {
       data={data as unknown as Record<string, unknown>[]}
       columns={columns}
       searchKeys={["Name", "Farm_Name"]}
-      onAdd={() => router.push("/fields/new")}
+      onAdd={canCreate ? () => router.push("/fields/new") : undefined}
       addLabel="New Field"
       onRowClick={(row) => router.push(`/fields/${(row as unknown as FieldRow).id}`)}
     />

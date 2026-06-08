@@ -1,7 +1,11 @@
 import { prisma } from "@/lib/prisma";
+import { auth } from "@/lib/auth";
+import { canCreate, type Role } from "@/lib/roles";
 import { FieldsClient } from "./fields-client";
 
 export default async function FieldsPage() {
+  const session = await auth();
+  const role = (session?.user?.role ?? "viewer") as Role;
   const fields = await prisma.field.findMany({
     orderBy: { id: "asc" },
     include: { Farm: true },
@@ -15,5 +19,5 @@ export default async function FieldsPage() {
     hasGeometry: !!f.geometry,
   }));
 
-  return <FieldsClient data={data} />;
+  return <FieldsClient data={data} canCreate={canCreate(role)} />;
 }

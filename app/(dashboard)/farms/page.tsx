@@ -1,11 +1,17 @@
 import { prisma } from "@/lib/prisma";
+import { auth } from "@/lib/auth";
+import { canCreate, type Role } from "@/lib/roles";
 import { FarmsClient } from "./farms-client";
 
 export default async function FarmsPage() {
-  const farms = await prisma.farm.findMany({
-    orderBy: { id: "asc" },
-    include: { Contacts: { where: { is_lab_member: false }, take: 1 } },
-  });
+  const [session, farms] = await Promise.all([
+    auth(),
+    prisma.farm.findMany({
+      orderBy: { id: "asc" },
+      include: { Contacts: { where: { is_lab_member: false }, take: 1 } },
+    }),
+  ]);
+  const role = (session?.user?.role ?? "viewer") as Role;
   const data = farms.map((f) => ({
     id: f.id,
     Farm_Name: f.Farm_Name,
@@ -16,5 +22,5 @@ export default async function FarmsPage() {
     created_at: f.created_at ? f.created_at.toISOString() : null,
     updated_at: f.updated_at ? f.updated_at.toISOString() : null,
   }));
-  return <FarmsClient data={data} />;
+  return <FarmsClient data={data} canCreate={canCreate(role)} />;
 }

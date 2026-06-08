@@ -69,7 +69,13 @@
 - [x] 16. **Upload Data Button** There should be a data upload portal for unstructured data like pdfs, csvs and docx files. These should be uploaded either in a project page, or in a specific farm page and be assigned to the farm or project level. 
 - [x] 17. **Link Farmer Name and other contact fields to Farmer info in Farmer Page** There should only be one farmer table, the existing farmers and contacts should be merged, and only one table carried forward, but the existing display of both the Farmers tab and the Farmer information in the Farms>farm menu should continue.
 
+- [x] 18. **Three Tiered Administration System** There needs to be a hierarchy of administration levels for web ui users, with the highest level being able to delete any feature and activate an "Edit Mode" that allows tier 2 members to delete rows as well. Tier 2 members can add projects, farmers and farms, edit things that are currently editable, and delete things when Edit Mode is on. Lowest only able to categorize data uploads. Once this change is in place, Users and Lab members can be merged, and an admin panel made visible to tier 1 members that can designate other members admin level, and activate Edit Mode.
+- [ ] 19. **Increase the Prominence of Experiment** Add Experiment to the Data Sorting Table and add an Experiments Tab to the "Field Operations" group that shows the experiment information from the experiment Tab in the Farms page. (all fields for now).
+- [ ] 20. **Merge Data Uploads and Data Sorting Tabs** 
+- [x] 21. **Add a log out option** When the user clicks on their name in the top left corner, a small window pops up that lets the user log out. 
 - [ ] 
+
+
 
 
 

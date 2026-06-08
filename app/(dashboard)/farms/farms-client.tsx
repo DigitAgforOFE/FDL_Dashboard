@@ -25,7 +25,7 @@ function formatDate(iso: string | null): string {
   });
 }
 
-export function FarmsClient({ data }: { data: FarmRow[] }) {
+export function FarmsClient({ data, canCreate }: { data: FarmRow[]; canCreate?: boolean }) {
   const router = useRouter();
 
   const columns = [
@@ -90,7 +90,7 @@ export function FarmsClient({ data }: { data: FarmRow[] }) {
       data={data as unknown as Record<string, unknown>[]}
       columns={columns}
       searchKeys={["Farm_Name", "Farmer_Name", "County", "State"]}
-      onAdd={() => router.push("/farms/new")}
+      onAdd={canCreate ? () => router.push("/farms/new") : undefined}
       addLabel="New Farm"
       onRowClick={(row) => router.push(`/farms/${(row as unknown as FarmRow).id}`)}
     />

@@ -37,7 +37,7 @@ export default async function DataSortingPage() {
     }),
     prisma.labMemberUpload.findMany({
       include: {
-        LabMember: { select: { Name: true } },
+        User: { select: { name: true } },
         Farm:      { select: { Farm_Name: true } },
         Project:   { select: { Project_Name: true } },
       },
@@ -129,7 +129,7 @@ export default async function DataSortingPage() {
     ...labUploads.map((r) => ({
       id: r.id,
       table: "lab-member-uploads" as const,
-      uploader: r.LabMember?.Name ?? null,
+      uploader: r.User?.name ?? null,
       uploader_type: "lab_member" as const,
       farm: r.Farm?.Farm_Name ?? null,
       media_type: r.media_type,

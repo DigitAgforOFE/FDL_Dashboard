@@ -1,5 +1,9 @@
 import { prisma } from "@/lib/prisma";
 import { notFound } from "next/navigation";
+import { auth } from "@/lib/auth";
+import { getEditMode } from "@/lib/edit-mode";
+import { canEdit, canDelete, type Role } from "@/lib/roles";
+import { DeleteProjectButton } from "./delete-button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -21,25 +25,30 @@ export default async function ProjectDetailPage({ params }: { params: Promise<{ 
   const { id } = await params;
   const projectId = parseInt(id);
 
+  const [session, editMode] = await Promise.all([auth(), getEditMode()]);
+  const role = (session?.user?.role ?? "viewer") as Role;
+  const showEdit = canEdit(role);
+  const showDelete = canDelete(role, editMode);
+
   const [project, allFarms, allLabMembers] = await Promise.all([
     prisma.project.findUnique({
       where: { id: projectId },
       include: {
         ProjectFarms: { include: { Farm: true } },
-        ProjectLabMembers: { include: { LabMember: true } },
+        ProjectLabMembers: { include: { User: true } },
         TreatmentProtocols: { include: { Treatment: true } },
         ExperimentZones: { include: { Farm: true } },
         Documents: { orderBy: { uploaded_at: "desc" } },
       },
     }),
     prisma.farm.findMany({ select: { id: true, Farm_Name: true } }),
-    prisma.labMember.findMany({ select: { id: true, Name: true } }),
+    prisma.user.findMany({ select: { id: true, name: true, email: true } }),
   ]);
 
   if (!project) notFound();
 
   const linkedFarmIds = new Set(project.ProjectFarms.map((pf) => pf.Farms_id));
-  const linkedMemberIds = new Set(project.ProjectLabMembers.map((pm) => pm.Lab_Members_id));
+  const linkedMemberIds = new Set(project.ProjectLabMembers.map((pm) => pm.user_id));
 
   const availableFarms = allFarms
     .filter((f) => !linkedFarmIds.has(f.id))
@@ -47,7 +56,7 @@ export default async function ProjectDetailPage({ params }: { params: Promise<{ 
 
   const availableMembers = allLabMembers
     .filter((m) => !linkedMemberIds.has(m.id))
-    .map((m) => ({ id: m.id, name: m.Name ?? `Member #${m.id}` }));
+    .map((m) => ({ id: m.id, name: m.name ?? m.email }));
 
   return (
     <div className="space-y-6">
@@ -66,7 +75,12 @@ export default async function ProjectDetailPage({ params }: { params: Promise<{ 
           <Badge variant={project.Status === "Active" ? "default" : "secondary"}>
             {project.Status ?? "Unknown"}
           </Badge>
-          <Link href={`/projects/${project.id}/edit`} className={cn(buttonVariants({ variant: "outline", size: "sm" }))}>Edit</Link>
+          {showEdit && (
+            <Link href={`/projects/${project.id}/edit`} className={cn(buttonVariants({ variant: "outline", size: "sm" }))}>Edit</Link>
+          )}
+          {showDelete && (
+            <DeleteProjectButton projectId={project.id} projectName={project.Project_Name} />
+          )}
         </div>
       </div>
 
@@ -136,10 +150,10 @@ export default async function ProjectDetailPage({ params }: { params: Promise<{ 
                   <TableHeader><TableRow><TableHead>Name</TableHead><TableHead>Position</TableHead><TableHead>Email</TableHead></TableRow></TableHeader>
                   <TableBody>
                     {project.ProjectLabMembers.map((pm) => (
-                      <TableRow key={pm.Lab_Members_id}>
-                        <TableCell className="font-medium">{pm.LabMember.Name ?? "—"}</TableCell>
-                        <TableCell>{pm.LabMember.Position ?? "—"}</TableCell>
-                        <TableCell>{pm.LabMember.Contact_Email ?? "—"}</TableCell>
+                      <TableRow key={pm.user_id}>
+                        <TableCell className="font-medium">{pm.User.name ?? "—"}</TableCell>
+                        <TableCell>{pm.User.position ?? "—"}</TableCell>
+                        <TableCell>{pm.User.email}</TableCell>
                       </TableRow>
                     ))}
                   </TableBody>

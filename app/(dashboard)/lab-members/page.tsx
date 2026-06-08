@@ -1,17 +1,22 @@
 import { prisma } from "@/lib/prisma";
+import { auth } from "@/lib/auth";
+import { canCreate, type Role } from "@/lib/roles";
 import { LabMembersClient } from "./lab-members-client";
 
 export default async function LabMembersPage() {
-  const members = await prisma.labMember.findMany({ orderBy: { id: "asc" } });
-  const data = members.map((m) => ({
-    id: m.id,
-    Name: m.Name,
-    Position: m.Position,
-    Status: m.Status,
-    FAA_Part_107: m.FAA_Part_107 ?? false,
-    Contact_Phone: m.Contact_Phone,
-    Contact_Email: m.Contact_Email,
-    has_token: !!m.token,
+  const session = await auth();
+  const role = (session?.user?.role ?? "viewer") as Role;
+  const users = await prisma.user.findMany({ orderBy: { createdAt: "asc" } });
+  const data = users.map((u) => ({
+    id: u.id,
+    name: u.name,
+    email: u.email,
+    position: u.position,
+    status: u.status,
+    faa_part_107: u.faa_part_107,
+    contact_phone: u.contact_phone,
+    role: u.role,
+    has_token: !!u.bearer_token,
   }));
-  return <LabMembersClient data={data} />;
+  return <LabMembersClient data={data} canCreate={canCreate(role)} />;
 }

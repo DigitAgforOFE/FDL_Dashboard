@@ -20,7 +20,7 @@ const statusVariant = (status: string | null) => {
   return "outline";
 };
 
-export function ProjectsClient({ data }: { data: ProjectRow[] }) {
+export function ProjectsClient({ data, canCreate }: { data: ProjectRow[]; canCreate?: boolean }) {
   const router = useRouter();
 
   const columns = [
@@ -72,7 +72,7 @@ export function ProjectsClient({ data }: { data: ProjectRow[] }) {
       data={data as unknown as Record<string, unknown>[]}
       columns={columns as unknown as { key: string; header: string; render?: (row: Record<string, unknown>) => React.ReactNode }[]}
       searchKeys={["Project_Name", "Status"]}
-      onAdd={() => router.push("/projects/new")}
+      onAdd={canCreate ? () => router.push("/projects/new") : undefined}
       addLabel="New Project"
       onRowClick={(row) => router.push(`/projects/${(row as unknown as ProjectRow).id}`)}
     />

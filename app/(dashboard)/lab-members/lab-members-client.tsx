@@ -7,13 +7,14 @@ import { Button } from "@/components/ui/button";
 import { Pencil, CheckCircle2, Smartphone } from "lucide-react";
 
 interface LabMemberRow {
-  id: number;
-  Name: string | null;
-  Position: string | null;
-  Status: string | null;
-  FAA_Part_107: boolean;
-  Contact_Phone: string | null;
-  Contact_Email: string | null;
+  id: string;
+  name: string | null;
+  email: string;
+  position: string | null;
+  status: string | null;
+  faa_part_107: boolean;
+  contact_phone: string | null;
+  role: string;
   has_token: boolean;
 }
 
@@ -23,38 +24,45 @@ function statusVariant(status: string | null): "default" | "secondary" | "outlin
   return "outline";
 }
 
-export function LabMembersClient({ data }: { data: LabMemberRow[] }) {
+export function LabMembersClient({ data, canCreate }: { data: LabMemberRow[]; canCreate?: boolean }) {
   const router = useRouter();
 
   const columns = [
-    { key: "Name", header: "Name" },
-    { key: "Position", header: "Position" },
+    { key: "name", header: "Name" },
+    { key: "email", header: "Email" },
+    { key: "position", header: "Position" },
     {
-      key: "Status",
+      key: "status",
       header: "Status",
       render: (row: Record<string, unknown>) => {
         const r = row as unknown as LabMemberRow;
-        return r.Status ? (
-          <Badge variant={statusVariant(r.Status)}>{r.Status}</Badge>
+        return r.status ? (
+          <Badge variant={statusVariant(r.status)}>{r.status}</Badge>
         ) : (
           <span className="text-slate-400">—</span>
         );
       },
     },
     {
-      key: "FAA_Part_107",
+      key: "faa_part_107",
       header: "FAA Part 107",
       render: (row: Record<string, unknown>) => {
         const r = row as unknown as LabMemberRow;
-        return r.FAA_Part_107 ? (
+        return r.faa_part_107 ? (
           <CheckCircle2 className="h-4 w-4 text-green-600" />
         ) : (
           <span className="text-slate-300">—</span>
         );
       },
     },
-    { key: "Contact_Phone", header: "Phone" },
-    { key: "Contact_Email", header: "Email" },
+    {
+      key: "role",
+      header: "Role",
+      render: (row: Record<string, unknown>) => {
+        const r = row as unknown as LabMemberRow;
+        return <Badge variant={r.role === "admin" ? "default" : "secondary"}>{r.role}</Badge>;
+      },
+    },
     {
       key: "has_token",
       header: "App Access",
@@ -90,8 +98,8 @@ export function LabMembersClient({ data }: { data: LabMemberRow[] }) {
       title="Lab Members"
       data={data as unknown as Record<string, unknown>[]}
       columns={columns}
-      searchKeys={["Name", "Position", "Status"]}
-      onAdd={() => router.push("/lab-members/new")}
+      searchKeys={["name", "email", "position", "status"]}
+      onAdd={canCreate ? () => router.push("/lab-members/new") : undefined}
       addLabel="New Member"
       onRowClick={(row) => router.push(`/lab-members/${(row as unknown as LabMemberRow).id}`)}
     />

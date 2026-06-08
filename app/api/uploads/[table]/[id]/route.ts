@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
+import { auth } from "@/lib/auth";
 
 const ALLOWED = ["photos", "notes", "recordings", "locations", "lab-member-uploads"] as const;
 type Table = (typeof ALLOWED)[number];
@@ -22,6 +23,9 @@ export async function PATCH(
   req: Request,
   { params }: { params: Promise<{ table: string; id: string }> }
 ) {
+  const session = await auth();
+  if (!session?.user) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+
   const { table, id } = await params;
   if (!isAllowed(table)) {
     return NextResponse.json({ error: "Unknown table" }, { status: 400 });

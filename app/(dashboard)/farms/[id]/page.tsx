@@ -1,5 +1,9 @@
 import { prisma } from "@/lib/prisma";
 import { notFound } from "next/navigation";
+import { auth } from "@/lib/auth";
+import { getEditMode } from "@/lib/edit-mode";
+import { canEdit, canDelete, type Role } from "@/lib/roles";
+import { DeleteFarmButton } from "./delete-button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -31,6 +35,11 @@ const STATUS_LABELS: Record<number, { label: string; variant: "default" | "secon
 export default async function FarmDetailPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
   const farmId = parseInt(id);
+
+  const [session, editMode] = await Promise.all([auth(), getEditMode()]);
+  const role = (session?.user?.role ?? "viewer") as Role;
+  const showEdit = canEdit(role);
+  const showDelete = canDelete(role, editMode);
 
   const [farm, allProjects, farmExperiment, allTreatments] = await Promise.all([
     prisma.farm.findUnique({
@@ -69,7 +78,7 @@ export default async function FarmDetailPage({ params }: { params: Promise<{ id:
         },
         LabMemberUploads: {
           orderBy: { received_at: "desc" },
-          include: { LabMember: { select: { Name: true } } },
+          include: { User: { select: { name: true } } },
         },
         Documents: {
           orderBy: { uploaded_at: "desc" },
@@ -143,7 +152,7 @@ export default async function FarmDetailPage({ params }: { params: Promise<{ id:
     ...farm.LabMemberUploads.map((u) => ({
       key: `lab-${u.id}`,
       type: `${u.media_type.charAt(0).toUpperCase() + u.media_type.slice(1)} (Lab)`,
-      uploaderName: u.LabMember?.Name ?? "Lab Member",
+      uploaderName: u.User?.name ?? "Lab Member",
       date: u.received_at,
       status: u.status,
       category: u.category ?? null,
@@ -157,7 +166,7 @@ export default async function FarmDetailPage({ params }: { params: Promise<{ id:
     id: u.id,
     latitude: u.latitude!,
     longitude: u.longitude!,
-    uploaderName: u.LabMember?.Name ?? "Lab Member",
+    uploaderName: u.User?.name ?? "Lab Member",
     filename: u.filename ?? null,
     content: u.content ?? null,
     media_type: u.media_type,
@@ -204,7 +213,14 @@ export default async function FarmDetailPage({ params }: { params: Promise<{ id:
           </h2>
           <p className="text-slate-500">{primaryContact?.name ? `Farmer: ${primaryContact.name}` : ""}</p>
         </div>
-        <Link href={`/farms/${farm.id}/edit`} className={cn(buttonVariants({ variant: "outline", size: "sm" }))}>Edit</Link>
+        <div className="flex items-center gap-2">
+          {showEdit && (
+            <Link href={`/farms/${farm.id}/edit`} className={cn(buttonVariants({ variant: "outline", size: "sm" }))}>Edit</Link>
+          )}
+          {showDelete && (
+            <DeleteFarmButton farmId={farm.id} farmName={farm.Farm_Name} />
+          )}
+        </div>
       </div>
 
       <Tabs defaultValue="overview">

@@ -16,7 +16,7 @@ interface ContactRow {
   created_at: string;
 }
 
-export function ContactsClient({ data }: { data: ContactRow[] }) {
+export function ContactsClient({ data, canCreate }: { data: ContactRow[]; canCreate?: boolean }) {
   const router = useRouter();
 
   const columns = [
@@ -67,7 +67,7 @@ export function ContactsClient({ data }: { data: ContactRow[] }) {
       data={data as unknown as Record<string, unknown>[]}
       columns={columns}
       searchKeys={["name", "phone", "email", "farm_name"]}
-      onAdd={() => router.push("/contacts/new")}
+      onAdd={canCreate ? () => router.push("/contacts/new") : undefined}
       addLabel="New Contact"
       onRowClick={(row) => router.push(`/contacts/${(row as unknown as ContactRow).id}`)}
     />

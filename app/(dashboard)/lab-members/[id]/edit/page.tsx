@@ -4,18 +4,18 @@ import EditLabMemberClient from "./edit-client";
 
 export default async function EditLabMemberPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
-  const member = await prisma.labMember.findUnique({ where: { id: parseInt(id) } });
-  if (!member) notFound();
+  const user = await prisma.user.findUnique({ where: { id } });
+  if (!user) notFound();
   return (
     <EditLabMemberClient
       member={{
-        id: member.id,
-        Name: member.Name,
-        Position: member.Position,
-        Contact_Phone: member.Contact_Phone,
-        Contact_Email: member.Contact_Email,
-        Status: member.Status,
-        FAA_Part_107: member.FAA_Part_107,
+        id: user.id,
+        name: user.name,
+        position: user.position,
+        contact_phone: user.contact_phone,
+        email: user.email,
+        status: user.status,
+        faa_part_107: user.faa_part_107,
       }}
     />
   );

@@ -30,41 +30,46 @@ const STATUS_OPTIONS = [
 
 interface LabMemberFormProps {
   onSuccess?: () => void;
-  memberId?: number;
+  memberId?: string;
   initialData?: {
-    Name?: string | null;
-    Position?: string | null;
-    Contact_Phone?: string | null;
-    Contact_Email?: string | null;
-    Status?: string | null;
-    FAA_Part_107?: boolean | null;
+    name?: string | null;
+    position?: string | null;
+    contact_phone?: string | null;
+    email?: string;
+    status?: string | null;
+    faa_part_107?: boolean | null;
   };
 }
 
 export function LabMemberForm({ onSuccess, initialData, memberId }: LabMemberFormProps) {
-  const [name, setName] = useState(initialData?.Name ?? "");
-  const [position, setPosition] = useState(initialData?.Position ?? "");
-  const [phone, setPhone] = useState(initialData?.Contact_Phone ?? "");
-  const [email, setEmail] = useState(initialData?.Contact_Email ?? "");
-  const [status, setStatus] = useState(initialData?.Status ?? "");
-  const [faa, setFaa] = useState(initialData?.FAA_Part_107 ?? false);
+  const [name, setName] = useState(initialData?.name ?? "");
+  const [email, setEmail] = useState(initialData?.email ?? "");
+  const [password, setPassword] = useState("");
+  const [position, setPosition] = useState(initialData?.position ?? "");
+  const [phone, setPhone] = useState(initialData?.contact_phone ?? "");
+  const [status, setStatus] = useState(initialData?.status ?? "");
+  const [faa, setFaa] = useState(initialData?.faa_part_107 ?? false);
   const [saving, setSaving] = useState(false);
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
     setSaving(true);
     try {
+      const body: Record<string, unknown> = {
+        name: name || null,
+        position: position || null,
+        phone: phone || null,
+        status: status || null,
+        faa_part_107: faa,
+      };
+      if (!memberId) {
+        body.email = email;
+        if (password) body.password = password;
+      }
       await fetch(memberId ? `/api/lab-members/${memberId}` : "/api/lab-members", {
         method: memberId ? "PUT" : "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          Name: name,
-          Position: position || null,
-          Contact_Phone: phone || null,
-          Contact_Email: email || null,
-          Status: status || null,
-          FAA_Part_107: faa,
-        }),
+        body: JSON.stringify(body),
       });
       onSuccess?.();
     } finally {
@@ -76,8 +81,29 @@ export function LabMemberForm({ onSuccess, initialData, memberId }: LabMemberFor
     <form onSubmit={handleSubmit} className="space-y-4">
       <div className="space-y-1.5">
         <Label>Name</Label>
-        <Input value={name} onChange={(e) => setName(e.target.value)} required />
+        <Input value={name} onChange={(e) => setName(e.target.value)} />
       </div>
+
+      <div className="space-y-1.5">
+        <Label>Email {!memberId && <span className="text-red-500">*</span>}</Label>
+        {memberId ? (
+          <Input value={email} readOnly className="bg-slate-50 text-slate-500" />
+        ) : (
+          <Input type="email" value={email} onChange={(e) => setEmail(e.target.value)} required />
+        )}
+      </div>
+
+      {!memberId && (
+        <div className="space-y-1.5">
+          <Label>Password <span className="text-slate-400 font-normal">(leave blank to disable web login)</span></Label>
+          <Input
+            type="password"
+            value={password}
+            onChange={(e) => setPassword(e.target.value)}
+            placeholder="Optional"
+          />
+        </div>
+      )}
 
       <div className="space-y-1.5">
         <Label>Position</Label>
@@ -112,11 +138,6 @@ export function LabMemberForm({ onSuccess, initialData, memberId }: LabMemberFor
         <Input value={phone} onChange={(e) => setPhone(e.target.value)} />
       </div>
 
-      <div className="space-y-1.5">
-        <Label>Email</Label>
-        <Input type="email" value={email} onChange={(e) => setEmail(e.target.value)} />
-      </div>
-
       <div className="flex items-center gap-3">
         <Checkbox
           id="faa-part-107"
@@ -129,7 +150,7 @@ export function LabMemberForm({ onSuccess, initialData, memberId }: LabMemberFor
       </div>
 
       <Button type="submit" disabled={saving} className="w-full">
-        {saving ? "Saving..." : memberId ? "Update" : "Create"}
+        {saving ? "Saving..." : memberId ? "Update" : "Create Member"}
       </Button>
     </form>
   );

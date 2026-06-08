@@ -4,7 +4,7 @@ import { LabUploadsClient } from "./lab-uploads-client";
 export default async function LabUploadsPage() {
   const uploads = await prisma.labMemberUpload.findMany({
     include: {
-      LabMember: { select: { Name: true } },
+      User: { select: { name: true } },
       Farm: { select: { Farm_Name: true } },
     },
     orderBy: { received_at: "desc" },
@@ -12,7 +12,7 @@ export default async function LabUploadsPage() {
 
   const data = uploads.map((u) => ({
     id: u.id,
-    member_name: u.LabMember?.Name ?? null,
+    member_name: u.User?.name ?? null,
     farm_name: u.Farm?.Farm_Name ?? null,
     media_type: u.media_type,
     date_collected: u.date_collected?.toISOString() ?? null,

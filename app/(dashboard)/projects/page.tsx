@@ -1,7 +1,11 @@
 import { prisma } from "@/lib/prisma";
+import { auth } from "@/lib/auth";
+import { canCreate, type Role } from "@/lib/roles";
 import { ProjectsClient } from "./projects-client";
 
 export default async function ProjectsPage() {
+  const session = await auth();
+  const role = (session?.user?.role ?? "viewer") as Role;
   const projects = await prisma.project.findMany({
     orderBy: { id: "asc" },
   });
@@ -14,5 +18,5 @@ export default async function ProjectsPage() {
     Total_Budget: p.Total_Budget ? Number(p.Total_Budget) : null,
   }));
 
-  return <ProjectsClient data={data} />;
+  return <ProjectsClient data={data} canCreate={canCreate(role)} />;
 }

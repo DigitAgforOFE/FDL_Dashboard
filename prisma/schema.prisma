@@ -9,14 +9,31 @@ datasource db {
 }
 
 model User {
-  id        String   @id @default(cuid())
-  name      String?
-  email     String   @unique
-  password  String
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
+  id            String   @id @default(cuid())
+  name          String?
+  email         String   @unique
+  password      String
+  role          String   @default("member")
+  bearer_token  String?  @unique @db.VarChar(64)
+  position      String?
+  contact_phone String?
+  faa_part_107  Boolean  @default(false)
+  status        String?
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  ProjectLabMembers ProjectLabMember[]
+  LabMemberUploads  LabMemberUpload[]
 
   @@map("users")
+  @@schema("public")
+}
+
+model SiteConfig {
+  key   String @id
+  value String @default("false")
+
+  @@map("site_config")
   @@schema("public")
 }
 
@@ -74,25 +91,6 @@ model Farm {
   @@schema("pgntarg2udzj1f3")
 }
 
-model LabMember {
-  id            Int       @id @default(autoincrement())
-  title         String?
-  Name          String?
-  Position      String?
-  Contact_Phone String?
-  Contact_Email String?
-  Status        String?
-  FAA_Part_107  Boolean?
-  token         String?   @db.VarChar(64)
-  created_at    DateTime?
-  updated_at    DateTime?
-
-  ProjectLabMembers  ProjectLabMember[]
-  LabMemberUploads   LabMemberUpload[]
-
-  @@map("Lab Members")
-  @@schema("pgntarg2udzj1f3")
-}
 
 model Field {
   id              Int       @id @default(autoincrement())
@@ -258,12 +256,12 @@ model ProjectFarm {
 }
 
 model ProjectLabMember {
-  Projects_id    Int
-  Lab_Members_id Int @map("Lab Members_id")
-  Project        Project   @relation(fields: [Projects_id], references: [id])
-  LabMember      LabMember @relation(fields: [Lab_Members_id], references: [id])
+  Projects_id Int
+  user_id     String
+  Project     Project @relation(fields: [Projects_id], references: [id])
+  User        User    @relation(fields: [user_id], references: [id])
 
-  @@id([Lab_Members_id, Projects_id])
+  @@id([user_id, Projects_id])
   @@map("_nc_m2m_Projects_Lab Members")
   @@schema("pgntarg2udzj1f3")
 }
@@ -417,7 +415,7 @@ model Location {
 
 model LabMemberUpload {
   id             Int       @id @default(autoincrement())
-  lab_member_id  Int?
+  lab_member_id  String?
   farm_id        Int?
   field_id       Int?
   project_id     Int?
@@ -435,9 +433,9 @@ model LabMemberUpload {
   description    String?
   received_at    DateTime  @default(now())
 
-  LabMember LabMember? @relation(fields: [lab_member_id], references: [id])
-  Farm      Farm?      @relation(fields: [farm_id], references: [id])
-  Project   Project?   @relation(fields: [project_id], references: [id])
+  User    User?    @relation(fields: [lab_member_id], references: [id])
+  Farm    Farm?    @relation(fields: [farm_id], references: [id])
+  Project Project? @relation(fields: [project_id], references: [id])
 
   @@map("Lab_Member_Uploads")
   @@schema("pgntarg2udzj1f3")

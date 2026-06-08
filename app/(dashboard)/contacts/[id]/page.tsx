@@ -1,5 +1,8 @@
 import { prisma } from "@/lib/prisma";
 import { notFound } from "next/navigation";
+import { auth } from "@/lib/auth";
+import { getEditMode } from "@/lib/edit-mode";
+import { canEdit, canDelete, type Role } from "@/lib/roles";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -20,6 +23,11 @@ import { DeleteContactButton } from "./delete-button";
 export default async function ContactDetailPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
   const contactId = parseInt(id);
+
+  const [session, editMode] = await Promise.all([auth(), getEditMode()]);
+  const role = (session?.user?.role ?? "viewer") as Role;
+  const showEdit = canEdit(role);
+  const showDelete = canDelete(role, editMode);
 
   const contact = await prisma.contact.findUnique({
     where: { id: contactId },
@@ -54,13 +62,12 @@ export default async function ContactDetailPage({ params }: { params: Promise<{ 
           )}
         </div>
         <div className="flex gap-2">
-          <Link
-            href={`/contacts/${contact.id}/edit`}
-            className={cn(buttonVariants({ variant: "outline", size: "sm" }))}
-          >
-            Edit
-          </Link>
-          <DeleteContactButton contactId={contact.id} contactName={contact.name} />
+          {showEdit && (
+            <Link href={`/contacts/${contact.id}/edit`} className={cn(buttonVariants({ variant: "outline", size: "sm" }))}>Edit</Link>
+          )}
+          {showDelete && (
+            <DeleteContactButton contactId={contact.id} contactName={contact.name} />
+          )}
         </div>
       </div>
 

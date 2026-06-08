@@ -23,6 +23,11 @@ export default auth((req) => {
     return NextResponse.redirect(new URL("/login", nextUrl));
   }
 
+  const isAdminRoute = nextUrl.pathname.startsWith("/admin");
+  if (isAdminRoute && req.auth?.user?.role !== "admin") {
+    return NextResponse.redirect(new URL("/", nextUrl));
+  }
+
   return NextResponse.next();
 });
 

@@ -6,13 +6,13 @@ import Link from "next/link";
 
 interface Props {
   member: {
-    id: number;
-    Name: string | null;
-    Position: string | null;
-    Contact_Phone: string | null;
-    Contact_Email: string | null;
-    Status: string | null;
-    FAA_Part_107: boolean | null;
+    id: string;
+    name: string | null;
+    position: string | null;
+    contact_phone: string | null;
+    email: string;
+    status: string | null;
+    faa_part_107: boolean;
   };
 }
 
@@ -26,10 +26,10 @@ export default function EditLabMemberClient({ member }: Props) {
           <span>/</span>
           <span>Edit</span>
         </div>
-        <h2 className="text-2xl font-bold text-slate-900">Edit {member.Name ?? `Member #${member.id}`}</h2>
+        <h2 className="text-2xl font-bold text-slate-900">Edit {member.name ?? member.email}</h2>
       </div>
       <div className="bg-white border rounded-lg p-6">
-        <LabMemberForm memberId={member.id} initialData={member} onSuccess={() => router.push("/lab-members")} />
+        <LabMemberForm memberId={member.id} initialData={member} onSuccess={() => router.push(`/lab-members/${member.id}`)} />
       </div>
     </div>
   );
