@@ -2,9 +2,10 @@ import { prisma } from "@/lib/prisma";
 
 export const DATA_DIR = process.env.DATA_DIR ?? "./upload-data";
 
-export type UploadTable = "photos" | "notes" | "recordings" | "locations" | "lab-member-uploads";
+export type UploadTable = "photos" | "videos" | "notes" | "recordings" | "locations" | "lab-member-uploads";
 export const UPLOAD_TABLES = [
   "photos",
+  "videos",
   "notes",
   "recordings",
   "locations",
@@ -76,9 +77,12 @@ export async function queryAllUploads(opts: QueryOptions): Promise<NormalizedUpl
     ...(opts.status?.length && { status: { in: opts.status } }),
   };
 
-  const [photos, notes, recordings, locations, labUploads] = await Promise.all([
+  const [photos, videos, notes, recordings, locations, labUploads] = await Promise.all([
     typesToInclude.includes("photos")
       ? prisma.photo.findMany({ where: baseWhere, include: { Farm: true, Project: true } })
+      : Promise.resolve([]),
+    typesToInclude.includes("videos")
+      ? prisma.video.findMany({ where: baseWhere, include: { Farm: true, Project: true } })
       : Promise.resolve([]),
     typesToInclude.includes("notes")
       ? prisma.note.findMany({ where: baseWhere, include: { Farm: true, Project: true } })
@@ -117,6 +121,30 @@ export async function queryAllUploads(opts: QueryOptions): Promise<NormalizedUpl
       longitude: row.longitude,
       suggested_path: buildSuggestedPath(proj, farm, row.category, row.filename),
       download_url: `/api/data/files/photos/${row.id}`,
+    });
+  }
+
+  for (const row of videos) {
+    const proj = pName(row.Project);
+    const farm = fName(row.Farm);
+    results.push({
+      id: row.id,
+      table: "videos",
+      type: "video",
+      filename: row.filename,
+      content: null,
+      project_id: row.project_id,
+      project_name: proj,
+      farm_id: row.farm_id,
+      farm_name: farm,
+      category: row.category,
+      description: row.description,
+      status: row.status,
+      received_at: row.received_at,
+      latitude: row.latitude,
+      longitude: row.longitude,
+      suggested_path: buildSuggestedPath(proj, farm, row.category, row.filename),
+      download_url: `/api/data/files/videos/${row.id}`,
     });
   }
 

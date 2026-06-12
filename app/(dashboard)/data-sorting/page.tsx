@@ -2,8 +2,16 @@ import { prisma } from "@/lib/prisma";
 import { DataSortingClient, UploadItem } from "./data-sorting-client";
 
 export default async function DataSortingPage() {
-  const [photos, notes, recordings, locations, labUploads, projects] = await Promise.all([
+  const [photos, videos, notes, recordings, locations, labUploads, projects] = await Promise.all([
     prisma.photo.findMany({
+      include: {
+        Contact: { select: { name: true } },
+        Farm:    { select: { Farm_Name: true } },
+        Project: { select: { Project_Name: true } },
+      },
+      orderBy: { received_at: "desc" },
+    }),
+    prisma.video.findMany({
       include: {
         Contact: { select: { name: true } },
         Farm:    { select: { Farm_Name: true } },
@@ -57,6 +65,25 @@ export default async function DataSortingPage() {
       uploader_type: "contact" as const,
       farm: r.Farm?.Farm_Name ?? null,
       media_type: "photo",
+      date_collected: r.timestamp?.toISOString() ?? null,
+      received_at: r.received_at.toISOString(),
+      status: r.status,
+      category: r.category ?? null,
+      description: r.description ?? null,
+      project_id: r.project_id ?? null,
+      project_name: r.Project?.Project_Name ?? null,
+      filename: r.filename || null,
+      content: r.note ?? null,
+      latitude: r.latitude ?? null,
+      longitude: r.longitude ?? null,
+    })),
+    ...videos.map((r) => ({
+      id: r.id,
+      table: "videos" as const,
+      uploader: r.Contact?.name ?? null,
+      uploader_type: "contact" as const,
+      farm: r.Farm?.Farm_Name ?? null,
+      media_type: "video",
       date_collected: r.timestamp?.toISOString() ?? null,
       received_at: r.received_at.toISOString(),
       status: r.status,

@@ -50,6 +50,12 @@ export async function GET(
       return serveFile(path.join(DATA_DIR, "photos", path.basename(row.filename)), row.filename);
     }
 
+    case "videos": {
+      const row = await prisma.video.findUnique({ where: { id: numId } });
+      if (!row) return NextResponse.json({ error: "Not found" }, { status: 404 });
+      return serveFile(path.join(DATA_DIR, "videos", path.basename(row.filename)), row.filename);
+    }
+
     case "recordings": {
       const row = await prisma.recording.findUnique({ where: { id: numId } });
       if (!row) return NextResponse.json({ error: "Not found" }, { status: 404 });

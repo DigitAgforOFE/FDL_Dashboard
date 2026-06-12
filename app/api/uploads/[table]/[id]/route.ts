@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 
-const ALLOWED = ["photos", "notes", "recordings", "locations", "lab-member-uploads"] as const;
+const ALLOWED = ["photos", "videos", "notes", "recordings", "locations", "lab-member-uploads"] as const;
 type Table = (typeof ALLOWED)[number];
 
 function isAllowed(t: string): t is Table {
@@ -11,6 +11,7 @@ function isAllowed(t: string): t is Table {
 async function updateRow(table: Table, id: number, data: Record<string, unknown>) {
   switch (table) {
     case "photos":              return prisma.photo.update({ where: { id }, data });
+    case "videos":              return prisma.video.update({ where: { id }, data });
     case "notes":               return prisma.note.update({ where: { id }, data });
     case "recordings":          return prisma.recording.update({ where: { id }, data });
     case "locations":           return prisma.location.update({ where: { id }, data });

@@ -25,7 +25,7 @@ import { Search } from "lucide-react";
 
 export interface UploadItem {
   id: number;
-  table: "photos" | "notes" | "recordings" | "locations" | "lab-member-uploads";
+  table: "photos" | "videos" | "notes" | "recordings" | "locations" | "lab-member-uploads";
   uploader: string | null;
   uploader_type: "contact" | "lab_member";
   farm: string | null;
@@ -59,6 +59,7 @@ const STATUS_VARIANT: Record<number, "outline" | "secondary" | "default" | "dest
 };
 const MEDIA_LABEL: Record<string, string> = {
   photo: "Photo",
+  video: "Video",
   note: "Note",
   recording: "Recording",
   location: "GPS Track",
@@ -82,6 +83,15 @@ function MediaPreview({ item }: { item: UploadItem }) {
         src={`/api/files/photos/${item.filename}`}
         alt="Upload preview"
         className="w-full max-h-64 object-cover rounded-md border"
+      />
+    );
+  }
+  if (item.media_type === "video" && item.filename) {
+    return (
+      <video
+        src={`/api/files/videos/${item.filename}`}
+        controls
+        className="w-full max-h-64 rounded-md border bg-black"
       />
     );
   }
@@ -292,6 +302,7 @@ export function DataSortingClient({
         >
           <option value="all">All Media</option>
           <option value="photo">Photo</option>
+          <option value="video">Video</option>
           <option value="note">Note</option>
           <option value="recording">Recording</option>
           <option value="location">GPS Track</option>
