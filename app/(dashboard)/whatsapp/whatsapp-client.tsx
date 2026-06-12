@@ -25,6 +25,7 @@ interface WhatsAppRow {
   last_submission: string | null;
   days_since: number | null;
   token: string;
+  channel: string | null;
 }
 
 function LastSubmissionBadge({ days }: { days: number | null }) {
@@ -54,6 +55,7 @@ function MessageModal({
   const [message, setMessage] = useState(initialMessage);
   const [sending, setSending] = useState(false);
   const [error, setError] = useState("");
+  const channel = farmer.channel ?? "whatsapp";
 
   async function handleSend() {
     if (!message.trim()) return;
@@ -63,7 +65,7 @@ function MessageModal({
       const res = await fetch("/api/whatsapp/send", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ phone: farmer.phone, message: message.trim() }),
+        body: JSON.stringify({ phone: farmer.phone, message: message.trim(), channel }),
       });
       if (res.ok) {
         onSent();
@@ -86,6 +88,15 @@ function MessageModal({
           <div>
             <p className="font-semibold text-slate-900">{farmer.name}</p>
             <p className="text-xs text-slate-500">{farmer.phone}</p>
+            <p className="text-xs mt-0.5">
+              <span className={`inline-flex items-center px-1.5 py-0.5 rounded text-xs font-medium ${
+                channel === "sms"
+                  ? "bg-blue-100 text-blue-700"
+                  : "bg-emerald-100 text-emerald-700"
+              }`}>
+                {channel === "sms" ? "SMS" : "WhatsApp"}
+              </span>
+            </p>
           </div>
           <button onClick={onClose} className="text-slate-400 hover:text-slate-600">
             <X className="h-5 w-5" />
@@ -128,13 +139,25 @@ export function WhatsAppClient({ data }: { data: WhatsAppRow[] }) {
   } | null>(null);
   const [sentNotice, setSentNotice] = useState("");
   const [onboarded, setOnboarded] = useState<Set<number>>(new Set());
+  const [channels, setChannels] = useState<Record<number, string | null>>(
+    Object.fromEntries(data.map((r) => [r.id, r.channel]))
+  );
+
+  async function updateChannel(farmerId: number, channel: string | null) {
+    setChannels((prev) => ({ ...prev, [farmerId]: channel }));
+    await fetch(`/api/contacts/${farmerId}`, {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ channel }),
+    });
+  }
 
   function openCustomMessage(farmer: WhatsAppRow) {
-    setModal({ farmer, message: "" });
+    setModal({ farmer: { ...farmer, channel: channels[farmer.id] ?? null }, message: "" });
   }
 
   function openOnboarding(farmer: WhatsAppRow) {
-    setModal({ farmer, message: ONBOARDING_MESSAGE, isOnboarding: true });
+    setModal({ farmer: { ...farmer, channel: channels[farmer.id] ?? null }, message: ONBOARDING_MESSAGE, isOnboarding: true });
   }
 
   function handleSent(farmerId?: number, wasOnboarding?: boolean) {
@@ -154,6 +177,29 @@ export function WhatsAppClient({ data }: { data: WhatsAppRow[] }) {
       render: (row: Record<string, unknown>) => {
         const r = row as unknown as WhatsAppRow;
         return r.farm_name ?? <span className="text-slate-400">—</span>;
+      },
+    },
+    {
+      key: "channel",
+      header: "Channel",
+      render: (row: Record<string, unknown>) => {
+        const r = row as unknown as WhatsAppRow;
+        const current = channels[r.id] ?? "";
+        return (
+          <select
+            value={current}
+            onClick={(e) => e.stopPropagation()}
+            onChange={(e) => {
+              e.stopPropagation();
+              updateChannel(r.id, e.target.value || null);
+            }}
+            className="h-7 rounded border border-slate-200 bg-white px-1.5 text-xs text-slate-700"
+          >
+            <option value="">— None —</option>
+            <option value="whatsapp">WhatsApp</option>
+            <option value="sms">SMS</option>
+          </select>
+        );
       },
     },
     {

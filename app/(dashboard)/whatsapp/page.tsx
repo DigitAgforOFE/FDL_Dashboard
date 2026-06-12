@@ -41,6 +41,7 @@ export default async function WhatsAppPage() {
       last_submission: lastSubmission?.toISOString() ?? null,
       days_since: daysSince,
       token: c.token,
+      channel: c.channel ?? null,
     };
   });
 

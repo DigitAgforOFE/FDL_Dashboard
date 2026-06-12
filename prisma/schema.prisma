@@ -309,6 +309,7 @@ model Contact {
   email         String?
   phone         String?
   whatsapp      Boolean   @default(false)
+  channel       String?   // "whatsapp" | "sms" | null — farmer's preferred messaging channel
   token         String    @default("")
   farms_id      Int?
   is_lab_member Boolean   @default(false)
