@@ -110,6 +110,7 @@ model Field {
   FieldDrones     FieldDrone[]
   DualexReadings  Dualex[]
   ExperimentZones ExperimentZone[]
+  ExperimentFields ExperimentField[]
 
   @@map("Fields")
   @@schema("pgntarg2udzj1f3")
@@ -198,15 +199,17 @@ model ExperimentZone {
 }
 
 model Test {
-  id               Int       @id @default(autoincrement())
-  title            String?
-  Test_Name        String?
-  Test_Description String?
-  Cost             Decimal?
-  Planned_Date     DateTime?
-  Completed_Date   DateTime?
-  created_at       DateTime?
-  updated_at       DateTime?
+  id                          Int       @id @default(autoincrement())
+  title                       String?
+  Test_Name                   String?
+  Test_Description            String?
+  Cost                        Decimal?
+  Planned_Date                DateTime?
+  Completed_Date              DateTime?
+  Methodology                 String?
+  Data_Processing_Instructions String?
+  created_at                  DateTime?
+  updated_at                  DateTime?
 
   FieldTests       FieldTest[]
   ExperimentTests  ExperimentTest[]
@@ -341,8 +344,9 @@ model Photo {
   ticket_ref  String?                         // human-readable OFEDashBot reference
   category    String?   @db.VarChar(100)
   description String?
-  stage       String?   @db.VarChar(50)
-  received_at DateTime  @default(now())
+  stage          String?   @db.VarChar(50)
+  merge_group_id String?   @db.VarChar(36)
+  received_at    DateTime  @default(now())
 
   Contact Contact? @relation(fields: [contact_id], references: [id])
   Farm    Farm?    @relation(fields: [farm_id], references: [id])
@@ -366,8 +370,9 @@ model Recording {
   ticket_ref   String?                         // human-readable OFEDashBot reference
   category     String?   @db.VarChar(100)
   description  String?
-  stage        String?   @db.VarChar(50)
-  received_at  DateTime  @default(now())
+  stage          String?   @db.VarChar(50)
+  merge_group_id String?   @db.VarChar(36)
+  received_at    DateTime  @default(now())
 
   Contact Contact? @relation(fields: [contact_id], references: [id])
   Farm    Farm?    @relation(fields: [farm_id], references: [id])
@@ -391,8 +396,9 @@ model Note {
   ticket_ref  String?                         // human-readable OFEDashBot reference
   category    String?   @db.VarChar(100)
   description String?
-  stage       String?   @db.VarChar(50)
-  received_at DateTime  @default(now())
+  stage          String?   @db.VarChar(50)
+  merge_group_id String?   @db.VarChar(36)
+  received_at    DateTime  @default(now())
 
   Contact Contact? @relation(fields: [contact_id], references: [id])
   Farm    Farm?    @relation(fields: [farm_id], references: [id])
@@ -417,6 +423,7 @@ model Location {
   category       String?   @db.VarChar(100)
   description    String?
   stage          String?   @db.VarChar(50)
+  merge_group_id String?   @db.VarChar(36)
   received_at    DateTime  @default(now())
 
   Contact Contact? @relation(fields: [contact_id], references: [id])
@@ -446,6 +453,7 @@ model LabMemberUpload {
   category       String?   @db.VarChar(100)
   description    String?
   stage          String?   @db.VarChar(50)
+  merge_group_id String?   @db.VarChar(36)
   received_at    DateTime  @default(now())
 
   User    User?    @relation(fields: [lab_member_id], references: [id])
@@ -473,6 +481,7 @@ model FarmExperiment {
   ExperimentTests        ExperimentTest[]
   ExperimentDroneFlights ExperimentDroneFlight[]
   ExperimentTreatments   ExperimentTreatment[]
+  ExperimentFields       ExperimentField[]
 
   @@map("Farm_Experiments")
   @@schema("pgntarg2udzj1f3")
@@ -484,6 +493,7 @@ model ExperimentTest {
   test_id       Int
   n_samples     Int?
   expected_date DateTime? @db.Date
+  status        String?
 
   Experiment FarmExperiment @relation(fields: [experiment_id], references: [id], onDelete: Cascade)
   Test       Test           @relation(fields: [test_id], references: [id], onDelete: Cascade)
@@ -498,6 +508,7 @@ model ExperimentDroneFlight {
   drone_id      Int
   n_flights     Int?
   expected_date DateTime? @db.Date
+  status        String?
 
   Experiment FarmExperiment @relation(fields: [experiment_id], references: [id], onDelete: Cascade)
   Drone      Drone          @relation(fields: [drone_id], references: [id], onDelete: Cascade)
@@ -509,12 +520,27 @@ model ExperimentDroneFlight {
 model ExperimentTreatment {
   experiment_id Int
   treatment_id  Int
+  is_continuous Boolean? @default(true)
+  rate          Decimal? @db.Decimal(10, 4)
+  rate_unit     String?
 
   Experiment FarmExperiment @relation(fields: [experiment_id], references: [id], onDelete: Cascade)
   Treatment  Treatment      @relation(fields: [treatment_id], references: [id], onDelete: Cascade)
 
   @@id([experiment_id, treatment_id])
   @@map("Experiment_Treatments")
+  @@schema("pgntarg2udzj1f3")
+}
+
+model ExperimentField {
+  experiment_id Int
+  field_id      Int
+
+  Experiment FarmExperiment @relation(fields: [experiment_id], references: [id], onDelete: Cascade)
+  Field      Field          @relation(fields: [field_id], references: [id], onDelete: Cascade)
+
+  @@id([experiment_id, field_id])
+  @@map("Experiment_Fields")
   @@schema("pgntarg2udzj1f3")
 }
 

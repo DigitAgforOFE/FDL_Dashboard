@@ -7,8 +7,8 @@ export default async function FarmsPage() {
   const [session, farms] = await Promise.all([
     auth(),
     prisma.farm.findMany({
-      orderBy: { id: "asc" },
-      include: { Contacts: { where: { is_lab_member: false }, take: 1 } },
+      orderBy: { Farm_Name: "asc" },
+      include: { Contacts: { where: { is_lab_member: false }, orderBy: { id: "asc" }, take: 1 } },
     }),
   ]);
   const role = (session?.user?.role ?? "viewer") as Role;

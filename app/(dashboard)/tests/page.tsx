@@ -1,15 +1,25 @@
 import { prisma } from "@/lib/prisma";
 import { TestsClient } from "./tests-client";
-import { format } from "date-fns";
 
 export default async function TestsPage() {
-  const tests = await prisma.test.findMany({ orderBy: { Planned_Date: "asc" } });
+  const tests = await prisma.test.findMany({
+    include: {
+      ExperimentTests: {
+        include: { Experiment: { include: { Farm: { select: { Farm_Name: true } } } } },
+      },
+    },
+    orderBy: { Test_Name: "asc" },
+  });
+
   const data = tests.map((t) => ({
     id: t.id,
     Test_Name: t.Test_Name,
-    Planned_Date: t.Planned_Date ? format(new Date(t.Planned_Date), "MMM d, yyyy") : null,
-    Completed_Date: t.Completed_Date ? format(new Date(t.Completed_Date), "MMM d, yyyy") : null,
     Cost: t.Cost ? Number(t.Cost) : null,
+    assignments: t.ExperimentTests.map((et) => ({
+      farm_name: et.Experiment?.Farm?.Farm_Name ?? null,
+      status: et.status ?? null,
+    })),
   }));
+
   return <TestsClient data={data} />;
 }

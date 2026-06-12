@@ -1,8 +1,11 @@
 import { prisma } from "@/lib/prisma";
+import { auth } from "@/lib/auth";
+import { getEditMode } from "@/lib/edit-mode";
+import { canDelete, type Role } from "@/lib/roles";
 import { DataSortingClient, UploadItem } from "./data-sorting-client";
 
 export default async function DataSortingPage() {
-  const [photos, notes, recordings, locations, labUploads, projects, farms] = await Promise.all([
+  const [photos, notes, recordings, locations, labUploads, projects, farms, session, editMode] = await Promise.all([
     prisma.photo.findMany({
       include: {
         Contact: { select: { name: true } },
@@ -51,7 +54,12 @@ export default async function DataSortingPage() {
       select: { id: true, Farm_Name: true },
       orderBy: { Farm_Name: "asc" },
     }),
+    auth(),
+    getEditMode(),
   ]);
+
+  const role = (session?.user?.role ?? "viewer") as Role;
+  const showDelete = canDelete(role, editMode);
 
   const items: UploadItem[] = [
     ...photos.map((r) => ({
@@ -75,6 +83,8 @@ export default async function DataSortingPage() {
       latitude: r.latitude ?? null,
       longitude: r.longitude ?? null,
       gps_track: null,
+      merge_group_id: r.merge_group_id ?? null,
+      end_time: null,
     })),
     ...notes.map((r) => ({
       id: r.id,
@@ -97,6 +107,8 @@ export default async function DataSortingPage() {
       latitude: r.latitude ?? null,
       longitude: r.longitude ?? null,
       gps_track: null,
+      merge_group_id: r.merge_group_id ?? null,
+      end_time: null,
     })),
     ...recordings.map((r) => ({
       id: r.id,
@@ -119,6 +131,8 @@ export default async function DataSortingPage() {
       latitude: null,
       longitude: null,
       gps_track: null,
+      merge_group_id: r.merge_group_id ?? null,
+      end_time: r.end_time?.toISOString() ?? null,
     })),
     ...locations.map((r) => ({
       id: r.id,
@@ -141,6 +155,8 @@ export default async function DataSortingPage() {
       latitude: null,
       longitude: null,
       gps_track: null,
+      merge_group_id: r.merge_group_id ?? null,
+      end_time: null,
     })),
     ...labUploads.map((r) => ({
       id: r.id,
@@ -163,11 +179,13 @@ export default async function DataSortingPage() {
       latitude: r.latitude ?? null,
       longitude: r.longitude ?? null,
       gps_track: null,
+      merge_group_id: r.merge_group_id ?? null,
+      end_time: r.end_time?.toISOString() ?? null,
     })),
   ].sort((a, b) => new Date(b.received_at).getTime() - new Date(a.received_at).getTime());
 
   const projectList = projects.map((p) => ({ id: p.id, name: p.Project_Name ?? `Project ${p.id}` }));
   const farmList = farms.map((f) => ({ id: f.id, name: f.Farm_Name ?? `Farm ${f.id}` }));
 
-  return <DataSortingClient items={items} projects={projectList} farms={farmList} />;
+  return <DataSortingClient items={items} projects={projectList} farms={farmList} canDelete={showDelete} />;
 }

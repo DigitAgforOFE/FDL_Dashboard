@@ -5,7 +5,14 @@ import { TestForm } from "@/components/forms/test-form";
 import Link from "next/link";
 
 interface Props {
-  test: { id: number; Test_Name: string | null; Test_Description: string | null; Cost: number | null; Planned_Date: string | null };
+  test: {
+    id: number;
+    Test_Name: string | null;
+    Test_Description: string | null;
+    Cost: number | null;
+    Methodology: string | null;
+    Data_Processing_Instructions: string | null;
+  };
 }
 
 export default function EditTestClient({ test }: Props) {

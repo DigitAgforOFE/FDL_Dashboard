@@ -73,7 +73,7 @@
 	- [x] Field Matching for spatial data. check uploaded data against field boundaries to match to field or farm (field uses intersect match, if not in field, use 1000 m near distance matching to match to farm)
 	
 - [ ] 14. **Database cleanout** many files were uploaded during the development phase that were corrupted by changes or are no longer relavent, I need a temporary way to delete data from the db, including farms, files and fields
-- [ ] 15. **Sort and filter for all table views**
+- [x] 15. **Sort and filter for all table views**
 - [x] 16. **Upload Data Button** There should be a data upload portal for unstructured data like pdfs, csvs and docx files. These should be uploaded either in a project page, or in a specific farm page and be assigned to the farm or project level. 
 - [x] 17. **Link Farmer Name and other contact fields to Farmer info in Farmer Page** There should only be one farmer table, the existing farmers and contacts should be merged, and only one table carried forward, but the existing display of both the Farmers tab and the Farmer information in the Farms>farm menu should continue.
 
@@ -94,17 +94,39 @@
 	- [ ] Planting
 	- [ ] Other
 - [x] 23. **Remove data uploads page** (just data organization is needed, data uploads are still visible in farm page)
-- [x] 24. **Overhaul of data organization** Instead of a pidly little side bar with a few fields, when a user clicks on a data item in the data sorting page, it should open a full page that shows all editable fields:
-		* Farm
-		* Project
-		* Category
-		* Status
-		* Stage (explained below)
-	and a map of where the data was collected (if it has spatial data).
-	The page should also have next and previous buttons at the bottom, and the ability to filter which types of data will be advanced to, for example, if filtering by farm, the "Next" button will skip uploads that dont pertain to the selected farm, likewise for other fields. 
+- [ ] 24. **Continued Overhaul of data organization** The data organization page need more tweaks to be functional. 
+	- [ ] Add delete button next to all data rows in Data Sorting page when Delete Mode is on. **This was implemented, but data deleted from the organize page still shows up on farm uploads tab in "Farms"**
+	- [x] Create upload type specific categories, the data upload catagories above are appropriate for photos and text uploads, but recordings have a different set of categories:
+		- [ ] Onboarding interview
+		- [ ] Voice Memo
+		- [ ] Other
+	- [x] Sorting/catagorization page for audio files should have a text box for audio summary
+	- [x] The audio recording box for playing audio, A, does not play audio and B, does not show the duration of the recording (beginning and end just show "00:00")
+	- [x] The "Stage" field should not be editable, it should automatically update, for example, if a dataset is edited in the data sorting page, then stage should switch from unread to read, and if an AI workflow edits the file at the backend, it should have access to switch it to AI Processed or "AI Verification Needed"
+	- [ ] "Merge Datasets" option. If datasets, (photos, audio files, notes) are geographically and temporally close (within 100m and separated by less than 10 minutes) and of the same type, a note pops up that says "This Dataset is similar to these others, with the option to check all the datasets to be merged. The merged group is displayed as a single row in the Data edit page. **This works well for photos, for recordings, the 10 minute, 100m may not be accounting for both the start and end points, the proximity algorithm should use both to match, so its comparing the time and place of the end of the first recording to the beginning of the next one**
+	- [x] The edit drop down menus show database ID number instead of name once selected, ie, Farm = 15 instead of "Rich-Nan Farm" fixed for "Farm", Project and Category, but not Status
+
+	
 - [x] 25. **Change Site Name to FDL Dashboard**
 - [x] 26. **Show Audio Recording Tracks instead of Dots** In the maps in data sorting data uploads, audio recordings show as a single dot where the recording started, but should show as a track/line feature.
-- [ ] 27. **Permanently save image files** Currently, every time the dashboard restarts, images are lost, there needs to be a way to save them to the database permanently so that thumbnails and files are permanent.
+- [x] 27. **Permanently save image files** Currently, every time the dashboard restarts, images are lost, there needs to be a way to save them to the database permanently so that thumbnails and files are permanent.
+- [ ] 28. **Minor UI fixes** 
+	- [x] Alphabetical sorting doesnt work for farmers, (For example, "Tom Corcoran" is listed first)
+	- [x] Some project pages dont load (projects 1 & 4)
+	- [x] Change Treatments to Treatment Types
+- [ ] 29. **Create Experiments tab** In addition to Projects, Farms and Fields, Experiments should be added to the sidebar, under farms, above fields. This tab will show all the experiments as a table, with all the data in the Farm>Experiment tab (experiment card), as well as the Farm, fields and Farm Level Treatment it is associated with (See item 30). 
+- [ ] 30. **Change Purpose and Goal of Tests and Drones**  
+	- [x] Tests and drones should be assignable tasks that need to be linkable to farms and experiments. That link will have a date of collection and status assigned to it, not to the test itself. For example, I created the CASH test in the database, which can then be assigned to an experiment and field, and then a collection date or dates can be assigned to that test event. 
+	- [ ] Add data collection Methodology section to Tests (name "Methodology" this is a long text field, ideally could handle markdown)
+	- [ ] Add Data processing instructions to describe data structure and how to interpret raw data (csv formats etc.), also long text field with markdown.
+- [ ] 31. **Farm Level Treatments** Category should have an "other" option that can be written, 
+- [x] 32. **Link specific fields to Experiments** In the experiments tab in Farms>Farm>Experiments, there should be a way to link each experiment to specific fields for that farm. Ideally this would be done using an interactive map that also shows field observations from the datalogger app, to help identify which fields are which.
+- [x] 33. **Remove Farm Delete button when Delete mode is off**
+- [x] 34. **Add capacity for multiple experiments in a single farm**
+- [ ] 35. **Update Dashboard** 
+	- [ ] Add recently edited experiments
+	- [ ] 
+
 
 
 

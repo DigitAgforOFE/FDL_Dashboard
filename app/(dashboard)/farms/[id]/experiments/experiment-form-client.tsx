@@ -7,56 +7,66 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Plus, X } from "lucide-react";
+import FieldSelectorMapWrapper from "@/components/field-selector-map-wrapper";
 
-type TestOption = { id: number; Test_Name: string | null };
-type DroneOption = { id: number; Name: string | null };
+type TestOption      = { id: number; Test_Name: string | null };
+type DroneOption     = { id: number; Name: string | null };
 type TreatmentOption = { id: number; Treatment_Name: string | null };
+type FarmField       = { id: number; Name: string | null; geometry: string | null };
 
-type TestRow = { test_id: number; n_samples: string; expected_date: string };
-type DroneRow = { drone_id: number; n_flights: string; expected_date: string };
+const ASSIGNMENT_STATUSES = ["Planned", "Collected", "Completed", "Cancelled"] as const;
+
+type TestRow      = { test_id: number; n_samples: string; expected_date: string; status: string };
+type DroneRow     = { drone_id: number; n_flights: string; expected_date: string; status: string };
+type TreatmentRow = { treatment_id: number; is_continuous: boolean; rate: string; rate_unit: string };
 
 interface Props {
-  farmId: number;
-  farmName: string | null;
+  farmId:       number;
+  farmName:     string | null;
+  experimentId?: number;
   experiment: {
     experiment_name: string | null;
-    start_date: string | null;
-    hypothesis: string | null;
+    start_date:      string | null;
+    hypothesis:      string | null;
     experiment_desc: string | null;
-    measurements: string | null;
-    criteria: string | null;
+    measurements:    string | null;
+    criteria:        string | null;
     lab_description: string | null;
-    tests: { test_id: number; n_samples: number | null; expected_date: string | null }[];
-    drones: { drone_id: number; n_flights: number | null; expected_date: string | null }[];
-    treatment_ids: number[];
+    tests:      { test_id: number; n_samples: number | null; expected_date: string | null; status: string | null }[];
+    drones:     { drone_id: number; n_flights: number | null; expected_date: string | null; status: string | null }[];
+    treatments: { treatment_id: number; is_continuous: boolean; rate: number | null; rate_unit: string | null }[];
+    field_ids:  number[];
   } | null;
-  allTests: TestOption[];
-  allDrones: DroneOption[];
+  allTests:      TestOption[];
+  allDrones:     DroneOption[];
   allTreatments: TreatmentOption[];
+  farmFields:    FarmField[];
 }
 
 const TEXTAREA = "flex w-full rounded-md border border-input bg-transparent px-3 py-2 text-sm resize-y focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring";
+const SELECT   = "h-9 rounded-md border border-input bg-transparent px-3 py-1 text-sm";
 
 export default function ExperimentFormClient({
-  farmId, farmName, experiment, allTests, allDrones, allTreatments,
+  farmId, farmName, experimentId, experiment, allTests, allDrones, allTreatments, farmFields,
 }: Props) {
-  const router = useRouter();
+  const router   = useRouter();
   const [saving, setSaving] = useState(false);
 
-  const [expName, setExpName] = useState(experiment?.experiment_name ?? "");
-  const [startDate, setStartDate] = useState(experiment?.start_date ?? "");
-  const [hypothesis, setHypothesis] = useState(experiment?.hypothesis ?? "");
-  const [expDesc, setExpDesc] = useState(experiment?.experiment_desc ?? "");
+  const [expName,      setExpName]      = useState(experiment?.experiment_name ?? "");
+  const [startDate,    setStartDate]    = useState(experiment?.start_date ?? "");
+  const [hypothesis,   setHypothesis]   = useState(experiment?.hypothesis ?? "");
+  const [expDesc,      setExpDesc]      = useState(experiment?.experiment_desc ?? "");
   const [measurements, setMeasurements] = useState(experiment?.measurements ?? "");
-  const [criteria, setCriteria] = useState(experiment?.criteria ?? "");
-  const [labDesc, setLabDesc] = useState(experiment?.lab_description ?? "");
+  const [criteria,     setCriteria]     = useState(experiment?.criteria ?? "");
+  const [labDesc,      setLabDesc]      = useState(experiment?.lab_description ?? "");
 
   const [testRows, setTestRows] = useState<TestRow[]>(
     experiment?.tests.length
       ? experiment.tests.map((t) => ({
-          test_id: t.test_id,
-          n_samples: t.n_samples?.toString() ?? "",
+          test_id:       t.test_id,
+          n_samples:     t.n_samples?.toString() ?? "",
           expected_date: t.expected_date ?? "",
+          status:        t.status ?? "",
         }))
       : []
   );
@@ -64,50 +74,87 @@ export default function ExperimentFormClient({
   const [droneRows, setDroneRows] = useState<DroneRow[]>(
     experiment?.drones.length
       ? experiment.drones.map((d) => ({
-          drone_id: d.drone_id,
-          n_flights: d.n_flights?.toString() ?? "",
+          drone_id:      d.drone_id,
+          n_flights:     d.n_flights?.toString() ?? "",
           expected_date: d.expected_date ?? "",
+          status:        d.status ?? "",
         }))
       : []
   );
 
-  const [selectedTreatments, setSelectedTreatments] = useState<Set<number>>(
-    new Set(experiment?.treatment_ids ?? [])
+  const [treatmentRows, setTreatmentRows] = useState<TreatmentRow[]>(
+    experiment?.treatments.length
+      ? experiment.treatments.map((t) => ({
+          treatment_id:  t.treatment_id,
+          is_continuous: t.is_continuous,
+          rate:          t.rate?.toString() ?? "",
+          rate_unit:     t.rate_unit ?? "",
+        }))
+      : []
   );
+
+  const [selectedFieldIds, setSelectedFieldIds] = useState<Set<number>>(
+    new Set(experiment?.field_ids ?? [])
+  );
+
+  function toggleField(id: number) {
+    setSelectedFieldIds((prev) => {
+      const next = new Set(prev);
+      if (next.has(id)) next.delete(id);
+      else next.add(id);
+      return next;
+    });
+  }
+
+  const fieldsWithGeometry = farmFields.filter((f) => f.geometry);
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
     setSaving(true);
+    const url    = experimentId
+      ? `/api/experiments/${farmId}/${experimentId}`
+      : `/api/experiments/${farmId}`;
+    const method = experimentId ? "PUT" : "POST";
     try {
-      await fetch(`/api/experiments/${farmId}`, {
-        method: "PUT",
+      await fetch(url, {
+        method,
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           experiment_name: expName || null,
-          start_date: startDate || null,
-          hypothesis: hypothesis || null,
+          start_date:      startDate || null,
+          hypothesis:      hypothesis || null,
           experiment_desc: expDesc || null,
-          measurements: measurements || null,
-          criteria: criteria || null,
+          measurements:    measurements || null,
+          criteria:        criteria || null,
           lab_description: labDesc || null,
           tests: testRows
             .filter((r) => r.test_id)
             .map((r) => ({
-              test_id: r.test_id,
-              n_samples: r.n_samples ? parseInt(r.n_samples) : null,
+              test_id:       r.test_id,
+              n_samples:     r.n_samples ? parseInt(r.n_samples) : null,
               expected_date: r.expected_date || null,
+              status:        r.status || null,
             })),
           drones: droneRows
             .filter((r) => r.drone_id)
             .map((r) => ({
-              drone_id: r.drone_id,
-              n_flights: r.n_flights ? parseInt(r.n_flights) : null,
+              drone_id:      r.drone_id,
+              n_flights:     r.n_flights ? parseInt(r.n_flights) : null,
               expected_date: r.expected_date || null,
+              status:        r.status || null,
             })),
-          treatment_ids: Array.from(selectedTreatments),
+          treatments: treatmentRows
+            .filter((r) => r.treatment_id)
+            .map((r) => ({
+              treatment_id:  r.treatment_id,
+              is_continuous: r.is_continuous,
+              rate:          r.rate ? parseFloat(r.rate) : null,
+              rate_unit:     r.rate_unit || null,
+            })),
+          field_ids: Array.from(selectedFieldIds),
         }),
       });
-      router.push(`/farms/${farmId}`);
+      router.push(`/farms/${farmId}/experiments`);
     } finally {
       setSaving(false);
     }
@@ -123,7 +170,9 @@ export default function ExperimentFormClient({
             {farmName ?? `Farm #${farmId}`}
           </Link>
           <span>/</span>
-          <span>Experiments</span>
+          <Link href={`/farms/${farmId}/experiments`} className="hover:text-slate-900">Experiments</Link>
+          <span>/</span>
+          <span>{experiment ? "Edit" : "New"}</span>
         </div>
         <h2 className="text-2xl font-bold text-slate-900">
           {experiment ? "Edit Experiment" : "Add Experiment"}
@@ -174,9 +223,9 @@ export default function ExperimentFormClient({
           <div className="space-y-2">
             <Label>Tests</Label>
             {testRows.map((row, i) => (
-              <div key={i} className="flex gap-2 items-center">
+              <div key={i} className="flex gap-2 items-center flex-wrap">
                 <select
-                  className="flex-1 h-9 rounded-md border border-input bg-transparent px-3 py-1 text-sm"
+                  className={`flex-1 min-w-32 ${SELECT}`}
                   value={row.test_id}
                   onChange={(e) => {
                     const updated = [...testRows];
@@ -209,12 +258,21 @@ export default function ExperimentFormClient({
                     setTestRows(updated);
                   }}
                 />
-                <Button
-                  type="button"
-                  variant="ghost"
-                  size="icon"
-                  onClick={() => setTestRows(testRows.filter((_, idx) => idx !== i))}
+                <select
+                  className={`w-36 ${SELECT}`}
+                  value={row.status}
+                  onChange={(e) => {
+                    const updated = [...testRows];
+                    updated[i] = { ...updated[i], status: e.target.value };
+                    setTestRows(updated);
+                  }}
                 >
+                  <option value="">— Status —</option>
+                  {ASSIGNMENT_STATUSES.map((s) => (
+                    <option key={s} value={s}>{s}</option>
+                  ))}
+                </select>
+                <Button type="button" variant="ghost" size="icon" onClick={() => setTestRows(testRows.filter((_, idx) => idx !== i))}>
                   <X className="h-4 w-4" />
                 </Button>
               </div>
@@ -224,7 +282,7 @@ export default function ExperimentFormClient({
                 type="button"
                 variant="outline"
                 size="sm"
-                onClick={() => setTestRows([...testRows, { test_id: allTests[0].id, n_samples: "", expected_date: "" }])}
+                onClick={() => setTestRows([...testRows, { test_id: allTests[0].id, n_samples: "", expected_date: "", status: "" }])}
               >
                 <Plus className="h-3.5 w-3.5 mr-1" /> Add Test
               </Button>
@@ -235,9 +293,9 @@ export default function ExperimentFormClient({
           <div className="space-y-2">
             <Label>Drone Flights</Label>
             {droneRows.map((row, i) => (
-              <div key={i} className="flex gap-2 items-center">
+              <div key={i} className="flex gap-2 items-center flex-wrap">
                 <select
-                  className="flex-1 h-9 rounded-md border border-input bg-transparent px-3 py-1 text-sm"
+                  className={`flex-1 min-w-32 ${SELECT}`}
                   value={row.drone_id}
                   onChange={(e) => {
                     const updated = [...droneRows];
@@ -270,12 +328,21 @@ export default function ExperimentFormClient({
                     setDroneRows(updated);
                   }}
                 />
-                <Button
-                  type="button"
-                  variant="ghost"
-                  size="icon"
-                  onClick={() => setDroneRows(droneRows.filter((_, idx) => idx !== i))}
+                <select
+                  className={`w-36 ${SELECT}`}
+                  value={row.status}
+                  onChange={(e) => {
+                    const updated = [...droneRows];
+                    updated[i] = { ...updated[i], status: e.target.value };
+                    setDroneRows(updated);
+                  }}
                 >
+                  <option value="">— Status —</option>
+                  {ASSIGNMENT_STATUSES.map((s) => (
+                    <option key={s} value={s}>{s}</option>
+                  ))}
+                </select>
+                <Button type="button" variant="ghost" size="icon" onClick={() => setDroneRows(droneRows.filter((_, idx) => idx !== i))}>
                   <X className="h-4 w-4" />
                 </Button>
               </div>
@@ -285,43 +352,137 @@ export default function ExperimentFormClient({
                 type="button"
                 variant="outline"
                 size="sm"
-                onClick={() => setDroneRows([...droneRows, { drone_id: allDrones[0].id, n_flights: "", expected_date: "" }])}
+                onClick={() => setDroneRows([...droneRows, { drone_id: allDrones[0].id, n_flights: "", expected_date: "", status: "" }])}
               >
                 <Plus className="h-3.5 w-3.5 mr-1" /> Add Flight
               </Button>
             )}
           </div>
 
-          {/* Treatments */}
-          {allTreatments.length > 0 && (
-            <div className="space-y-2">
-              <Label>Treatments</Label>
+          {/* Farm Level Treatments */}
+          <div className="space-y-2">
+            <Label>Farm Level Treatments</Label>
+            {treatmentRows.map((row, i) => (
+              <div key={i} className="flex gap-2 items-center flex-wrap border rounded-md p-2 bg-slate-50">
+                <select
+                  className={`flex-1 min-w-36 ${SELECT}`}
+                  value={row.treatment_id}
+                  onChange={(e) => {
+                    const updated = [...treatmentRows];
+                    updated[i] = { ...updated[i], treatment_id: parseInt(e.target.value) };
+                    setTreatmentRows(updated);
+                  }}
+                >
+                  {allTreatments.map((t) => (
+                    <option key={t.id} value={t.id}>{t.Treatment_Name ?? `Treatment #${t.id}`}</option>
+                  ))}
+                </select>
+                <select
+                  className={`w-36 ${SELECT}`}
+                  value={row.is_continuous ? "continuous" : "categorical"}
+                  onChange={(e) => {
+                    const updated = [...treatmentRows];
+                    updated[i] = { ...updated[i], is_continuous: e.target.value === "continuous" };
+                    setTreatmentRows(updated);
+                  }}
+                >
+                  <option value="continuous">Continuous</option>
+                  <option value="categorical">Categorical</option>
+                </select>
+                <Input
+                  type="number"
+                  step="any"
+                  placeholder="Rate"
+                  className="w-24"
+                  value={row.rate}
+                  onChange={(e) => {
+                    const updated = [...treatmentRows];
+                    updated[i] = { ...updated[i], rate: e.target.value };
+                    setTreatmentRows(updated);
+                  }}
+                />
+                <Input
+                  placeholder="Unit"
+                  className="w-24"
+                  value={row.rate_unit}
+                  onChange={(e) => {
+                    const updated = [...treatmentRows];
+                    updated[i] = { ...updated[i], rate_unit: e.target.value };
+                    setTreatmentRows(updated);
+                  }}
+                />
+                <Button
+                  type="button"
+                  variant="ghost"
+                  size="icon"
+                  onClick={() => setTreatmentRows(treatmentRows.filter((_, idx) => idx !== i))}
+                >
+                  <X className="h-4 w-4" />
+                </Button>
+              </div>
+            ))}
+            {allTreatments.length > 0 && (
+              <Button
+                type="button"
+                variant="outline"
+                size="sm"
+                onClick={() =>
+                  setTreatmentRows([
+                    ...treatmentRows,
+                    { treatment_id: allTreatments[0].id, is_continuous: true, rate: "", rate_unit: "" },
+                  ])
+                }
+              >
+                <Plus className="h-3.5 w-3.5 mr-1" /> Add Treatment
+              </Button>
+            )}
+          </div>
+
+          {/* Linked Fields */}
+          <div className="space-y-2">
+            <Label>Linked Fields</Label>
+            {farmFields.length === 0 ? (
+              <p className="text-sm text-slate-400 italic">No fields have been added to this farm yet.</p>
+            ) : fieldsWithGeometry.length > 0 ? (
+              <>
+                <p className="text-xs text-slate-500">Click a field polygon to select or deselect it.</p>
+                <FieldSelectorMapWrapper
+                  fields={fieldsWithGeometry.map((f) => ({ id: f.id, name: f.Name, geometry: f.geometry }))}
+                  selectedIds={Array.from(selectedFieldIds)}
+                  onToggle={toggleField}
+                />
+                {selectedFieldIds.size > 0 && (
+                  <p className="text-xs text-slate-500">
+                    Selected:{" "}
+                    {farmFields
+                      .filter((f) => selectedFieldIds.has(f.id))
+                      .map((f) => f.Name ?? `Field #${f.id}`)
+                      .join(", ")}
+                  </p>
+                )}
+              </>
+            ) : (
               <div className="space-y-2 border rounded-md p-3">
-                {allTreatments.map((t) => (
-                  <label key={t.id} className="flex items-center gap-2 text-sm cursor-pointer">
+                {farmFields.map((f) => (
+                  <label key={f.id} className="flex items-center gap-2 text-sm cursor-pointer">
                     <input
                       type="checkbox"
-                      checked={selectedTreatments.has(t.id)}
-                      onChange={(e) => {
-                        const next = new Set(selectedTreatments);
-                        if (e.target.checked) next.add(t.id);
-                        else next.delete(t.id);
-                        setSelectedTreatments(next);
-                      }}
+                      checked={selectedFieldIds.has(f.id)}
+                      onChange={() => toggleField(f.id)}
                     />
-                    {t.Treatment_Name ?? `Treatment #${t.id}`}
+                    {f.Name ?? `Field #${f.id}`}
                   </label>
                 ))}
               </div>
-            </div>
-          )}
+            )}
+          </div>
         </div>
 
         <div className="flex gap-3">
           <Button type="submit" disabled={saving}>
             {saving ? "Saving..." : "Save"}
           </Button>
-          <Button type="button" variant="outline" onClick={() => router.push(`/farms/${farmId}`)}>
+          <Button type="button" variant="outline" onClick={() => router.push(`/farms/${farmId}/experiments`)}>
             Cancel
           </Button>
         </div>

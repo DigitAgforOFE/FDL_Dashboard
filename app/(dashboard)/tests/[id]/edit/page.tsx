@@ -13,7 +13,8 @@ export default async function EditTestPage({ params }: { params: Promise<{ id: s
         Test_Name: test.Test_Name,
         Test_Description: test.Test_Description,
         Cost: test.Cost ? Number(test.Cost) : null,
-        Planned_Date: test.Planned_Date ? test.Planned_Date.toISOString() : null,
+        Methodology: test.Methodology,
+        Data_Processing_Instructions: test.Data_Processing_Instructions,
       }}
     />
   );

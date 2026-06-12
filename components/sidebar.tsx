@@ -8,7 +8,6 @@ import {
   FolderKanban,
   Building2,
   Map,
-  FlaskConical,
   Layers,
   TestTube,
   Plane,
@@ -22,6 +21,7 @@ import {
   Settings2,
   MessageCircle,
   BarChart2,
+  Microscope,
 } from "lucide-react";
 import type { Role } from "@/lib/roles";
 
@@ -37,16 +37,16 @@ const dataNav = [
 const fieldOpsNav = [
   { href: "/projects", label: "Projects", icon: FolderKanban },
   { href: "/farms", label: "Farms", icon: Building2 },
+  { href: "/experiments", label: "Experiments", icon: Microscope },
   { href: "/fields", label: "Fields", icon: Map },
   { href: "/experiment-zones", label: "Experiment Zones", icon: Layers },
 ];
 
 const referenceNav = [
-  { href: "/treatments", label: "Treatments", icon: Beaker },
+  { href: "/treatments", label: "Treatment Types", icon: Beaker },
   { href: "/tests", label: "Tests", icon: TestTube },
   { href: "/drones", label: "Drones", icon: Plane },
   { href: "/crops", label: "Crops", icon: Wheat },
-  { href: "/treatment-protocols", label: "Treatment Protocols", icon: FlaskConical },
 ];
 
 interface SidebarProps {

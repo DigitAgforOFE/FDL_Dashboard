@@ -3,6 +3,7 @@ import path from "path";
 import { prisma } from "@/lib/prisma";
 import { notFound } from "next/navigation";
 import { UploadItem } from "../../data-sorting-client";
+import { haversineMetres } from "@/lib/utils";
 import DetailClient from "./detail-client";
 
 const DATA_DIR = process.env.DATA_DIR ?? "./upload-data";
@@ -46,6 +47,7 @@ async function fetchItem(table: TableSlug, id: number): Promise<UploadItem | nul
         project_id: r.project_id ?? null, project_name: r.Project?.Project_Name ?? null,
         filename: r.filename || null, content: r.note ?? null,
         latitude: r.latitude ?? null, longitude: r.longitude ?? null, gps_track: null,
+        merge_group_id: r.merge_group_id ?? null, end_time: null,
       };
     }
     case "notes": {
@@ -60,6 +62,7 @@ async function fetchItem(table: TableSlug, id: number): Promise<UploadItem | nul
         project_id: r.project_id ?? null, project_name: r.Project?.Project_Name ?? null,
         filename: null, content: r.content,
         latitude: r.latitude ?? null, longitude: r.longitude ?? null, gps_track: null,
+        merge_group_id: r.merge_group_id ?? null, end_time: null,
       };
     }
     case "recordings": {
@@ -74,6 +77,7 @@ async function fetchItem(table: TableSlug, id: number): Promise<UploadItem | nul
         project_id: r.project_id ?? null, project_name: r.Project?.Project_Name ?? null,
         filename: r.filename || null, content: null, latitude: null, longitude: null,
         gps_track: r.gps_filename ? loadGpsTrack("recordings", r.gps_filename) : null,
+        merge_group_id: r.merge_group_id ?? null, end_time: r.end_time?.toISOString() ?? null,
       };
     }
     case "locations": {
@@ -88,6 +92,7 @@ async function fetchItem(table: TableSlug, id: number): Promise<UploadItem | nul
         project_id: r.project_id ?? null, project_name: r.Project?.Project_Name ?? null,
         filename: null, content: r.name ?? null, latitude: null, longitude: null,
         gps_track: r.track_filename ? loadGpsTrack("locations", r.track_filename) : null,
+        merge_group_id: r.merge_group_id ?? null, end_time: r.end_time?.toISOString() ?? null,
       };
     }
     case "lab-member-uploads": {
@@ -112,6 +117,7 @@ async function fetchItem(table: TableSlug, id: number): Promise<UploadItem | nul
         gps_track: r.gps_filename
           ? loadGpsTrack(r.media_type === "recording" ? "recordings" : "locations", r.gps_filename)
           : null,
+        merge_group_id: r.merge_group_id ?? null, end_time: r.end_time?.toISOString() ?? null,
       };
     }
   }
@@ -156,6 +162,7 @@ async function fetchAllItems(): Promise<UploadItem[]> {
       project_id: r.project_id ?? null, project_name: r.Project?.Project_Name ?? null,
       filename: r.filename || null, content: r.note ?? null,
       latitude: r.latitude ?? null, longitude: r.longitude ?? null, gps_track: null,
+      merge_group_id: r.merge_group_id ?? null, end_time: null,
     })),
     ...notes.map((r) => ({
       id: r.id, table: "notes" as const, uploader: r.Contact?.name ?? null,
@@ -166,6 +173,7 @@ async function fetchAllItems(): Promise<UploadItem[]> {
       project_id: r.project_id ?? null, project_name: r.Project?.Project_Name ?? null,
       filename: null, content: r.content,
       latitude: r.latitude ?? null, longitude: r.longitude ?? null, gps_track: null,
+      merge_group_id: r.merge_group_id ?? null, end_time: null,
     })),
     ...recordings.map((r) => ({
       id: r.id, table: "recordings" as const, uploader: r.Contact?.name ?? null,
@@ -175,6 +183,7 @@ async function fetchAllItems(): Promise<UploadItem[]> {
       category: r.category ?? null, description: r.description ?? null,
       project_id: r.project_id ?? null, project_name: r.Project?.Project_Name ?? null,
       filename: r.filename || null, content: null, latitude: null, longitude: null, gps_track: null,
+      merge_group_id: r.merge_group_id ?? null, end_time: r.end_time?.toISOString() ?? null,
     })),
     ...locations.map((r) => ({
       id: r.id, table: "locations" as const, uploader: r.Contact?.name ?? null,
@@ -184,6 +193,7 @@ async function fetchAllItems(): Promise<UploadItem[]> {
       category: r.category ?? null, description: r.description ?? null,
       project_id: r.project_id ?? null, project_name: r.Project?.Project_Name ?? null,
       filename: null, content: r.name ?? null, latitude: null, longitude: null, gps_track: null,
+      merge_group_id: r.merge_group_id ?? null, end_time: r.end_time?.toISOString() ?? null,
     })),
     ...labUploads.map((r) => ({
       id: r.id, table: "lab-member-uploads" as const, uploader: r.User?.name ?? null,
@@ -194,6 +204,7 @@ async function fetchAllItems(): Promise<UploadItem[]> {
       project_id: r.project_id ?? null, project_name: r.Project?.Project_Name ?? null,
       filename: r.filename ?? null, content: r.content ?? null,
       latitude: r.latitude ?? null, longitude: r.longitude ?? null, gps_track: null,
+      merge_group_id: r.merge_group_id ?? null, end_time: r.end_time?.toISOString() ?? null,
     })),
   ].sort((a, b) => new Date(b.received_at).getTime() - new Date(a.received_at).getTime());
 }
@@ -250,6 +261,39 @@ export default async function DetailPage({
 
   if (!item) notFound();
 
+  // Find ungrouped items of the same media_type that are temporally and spatially close.
+  // Temporal: the GAP between the two time ranges must be < 10 min. For recordings/locations
+  // this means end-of-one to start-of-next, capturing back-to-back sessions.
+  // Spatial: only applied when both items carry lat/lng (photos, notes, some lab uploads).
+  const TEN_MIN_MS = 10 * 60 * 1000;
+
+  function tsOf(iso: string | null, fallback: string): number {
+    return new Date(iso ?? fallback).getTime();
+  }
+  function rangeGapMs(
+    start1: number, end1: number,
+    start2: number, end2: number,
+  ): number {
+    // Positive gap between two ranges; 0 if they overlap.
+    return Math.max(0, Math.max(start1, start2) - Math.min(end1, end2));
+  }
+
+  const itemStart = tsOf(item.date_collected, item.received_at);
+  const itemEnd   = item.end_time ? new Date(item.end_time).getTime() : itemStart;
+
+  const similarItems = allItems.filter((other) => {
+    if (other.id === item.id && other.table === item.table) return false;
+    if (other.media_type !== item.media_type) return false;
+    if (other.merge_group_id !== null) return false;
+    const otherStart = tsOf(other.date_collected, other.received_at);
+    const otherEnd   = other.end_time ? new Date(other.end_time).getTime() : otherStart;
+    if (rangeGapMs(itemStart, itemEnd, otherStart, otherEnd) > TEN_MIN_MS) return false;
+    if (item.latitude !== null && item.longitude !== null && other.latitude !== null && other.longitude !== null) {
+      if (haversineMetres(item.latitude, item.longitude, other.latitude, other.longitude) > 100) return false;
+    }
+    return true;
+  });
+
   const filtered = applyFilters(allItems, filterStatus, filterType, filterFarm, search);
   const idx = filtered.findIndex((x) => x.table === table && x.id === itemId);
   const prev = idx > 0 ? filtered[idx - 1] : null;
@@ -258,6 +302,15 @@ export default async function DetailPage({
   const total = filtered.length;
 
   const filterParams = new URLSearchParams({ status: filterStatus, type: filterType, farm: filterFarm, search });
+
+  // All other items that belong to the same merge group as the current item.
+  const groupMembers = item.merge_group_id
+    ? allItems.filter(
+        (other) =>
+          other.merge_group_id === item.merge_group_id &&
+          !(other.id === item.id && other.table === item.table),
+      )
+    : [];
 
   return (
     <DetailClient
@@ -269,6 +322,9 @@ export default async function DetailPage({
       position={position}
       total={total}
       backHref={`/data-sorting?${filterParams}`}
+      similarItems={similarItems}
+      groupMembers={groupMembers}
+      filterQuery={filterParams.toString()}
     />
   );
 }

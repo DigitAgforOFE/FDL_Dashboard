@@ -41,7 +41,7 @@ export default async function FarmDetailPage({ params }: { params: Promise<{ id:
   const showEdit = canEdit(role);
   const showDelete = canDelete(role, editMode);
 
-  const [farm, allProjects, farmExperiment, allTreatments] = await Promise.all([
+  const [farm, allProjects, farmExperiments] = await Promise.all([
     prisma.farm.findUnique({
       where: { id: farmId },
       include: {
@@ -86,15 +86,16 @@ export default async function FarmDetailPage({ params }: { params: Promise<{ id:
       },
     }),
     prisma.project.findMany({ select: { id: true, Project_Name: true } }),
-    prisma.farmExperiment.findFirst({
+    prisma.farmExperiment.findMany({
       where: { farm_id: farmId },
+      orderBy: { id: "asc" },
       include: {
-        ExperimentTests: { include: { Test: { select: { id: true, Test_Name: true } } } },
-        ExperimentDroneFlights: { include: { Drone: { select: { id: true, Name: true } } } },
-        ExperimentTreatments: { include: { Treatment: { select: { id: true, Treatment_Name: true } } } },
+        ExperimentTests:        { include: { Test:      { select: { id: true, Test_Name: true } } } },
+        ExperimentDroneFlights: { include: { Drone:     { select: { id: true, Name: true } } } },
+        ExperimentTreatments:   { include: { Treatment: { select: { id: true, Treatment_Name: true } } } },
+        ExperimentFields:       { select: { field_id: true } },
       },
     }),
-    prisma.treatment.findMany({ select: { id: true, Treatment_Name: true }, orderBy: { Treatment_Name: "asc" } }),
   ]);
 
   if (!farm) notFound();
@@ -364,36 +365,41 @@ export default async function FarmDetailPage({ params }: { params: Promise<{ id:
         <TabsContent value="experiments" className="mt-4">
           <FarmExperimentsTab
             farmId={farm.id}
-            experiment={
-              farmExperiment
-                ? {
-                    id: farmExperiment.id,
-                    experiment_name: farmExperiment.experiment_name,
-                    start_date: farmExperiment.start_date?.toISOString() ?? null,
-                    hypothesis: farmExperiment.hypothesis,
-                    experiment_desc: farmExperiment.experiment_desc,
-                    measurements: farmExperiment.measurements,
-                    criteria: farmExperiment.criteria,
-                    lab_description: farmExperiment.lab_description,
-                    tests: farmExperiment.ExperimentTests.map((et) => ({
-                      id: et.id,
-                      test_id: et.test_id,
-                      test_name: et.Test.Test_Name,
-                      n_samples: et.n_samples,
-                      expected_date: et.expected_date?.toISOString() ?? null,
-                    })),
-                    drones: farmExperiment.ExperimentDroneFlights.map((ed) => ({
-                      id: ed.id,
-                      drone_id: ed.drone_id,
-                      drone_name: ed.Drone.Name,
-                      n_flights: ed.n_flights,
-                      expected_date: ed.expected_date?.toISOString() ?? null,
-                    })),
-                    treatment_ids: farmExperiment.ExperimentTreatments.map((et) => et.treatment_id),
-                  }
-                : null
-            }
-            allTreatments={allTreatments}
+            experiments={farmExperiments.map((fe) => ({
+              id: fe.id,
+              experiment_name: fe.experiment_name,
+              start_date: fe.start_date?.toISOString() ?? null,
+              hypothesis: fe.hypothesis,
+              experiment_desc: fe.experiment_desc,
+              measurements: fe.measurements,
+              criteria: fe.criteria,
+              lab_description: fe.lab_description,
+              tests: fe.ExperimentTests.map((et) => ({
+                id: et.id,
+                test_id: et.test_id,
+                test_name: et.Test.Test_Name,
+                n_samples: et.n_samples,
+                expected_date: et.expected_date?.toISOString() ?? null,
+                status: et.status ?? null,
+              })),
+              drones: fe.ExperimentDroneFlights.map((ed) => ({
+                id: ed.id,
+                drone_id: ed.drone_id,
+                drone_name: ed.Drone.Name,
+                n_flights: ed.n_flights,
+                expected_date: ed.expected_date?.toISOString() ?? null,
+                status: ed.status ?? null,
+              })),
+              treatments: fe.ExperimentTreatments.map((et) => ({
+                treatment_id:   et.treatment_id,
+                treatment_name: et.Treatment.Treatment_Name,
+                is_continuous:  et.is_continuous,
+                rate:           et.rate !== null ? Number(et.rate) : null,
+                rate_unit:      et.rate_unit ?? null,
+              })),
+              field_ids: fe.ExperimentFields.map((ef) => ef.field_id),
+            }))}
+            farmFieldNames={farm.Fields.map((f) => ({ id: f.id, name: f.Name }))}
           />
         </TabsContent>
 

@@ -26,6 +26,7 @@ export async function POST(request: Request) {
           longitude: longitude ?? null,
           date_collected: timestamp ? new Date(timestamp) : null,
           status: farmId != null ? 2 : 1,
+          stage: "Unread",
         },
       });
     } else {
@@ -42,6 +43,7 @@ export async function POST(request: Request) {
           timestamp: timestamp ? new Date(timestamp) : null,
           status: 2,
           ticket_ref: ticket_ref || null,
+          stage: "Unread",
         },
       });
     }

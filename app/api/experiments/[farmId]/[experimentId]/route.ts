@@ -1,5 +1,8 @@
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
+import { auth } from "@/lib/auth";
+import { getEditMode } from "@/lib/edit-mode";
+import { canDelete, type Role } from "@/lib/roles";
 
 const INCLUDE = {
   ExperimentTests:        { include: { Test:      { select: { id: true, Test_Name: true } } } },
@@ -8,19 +11,20 @@ const INCLUDE = {
   ExperimentFields:       { select: { field_id: true } },
 };
 
-export async function GET(_: Request, { params }: { params: Promise<{ farmId: string }> }) {
-  const { farmId } = await params;
-  const experiments = await prisma.farmExperiment.findMany({
-    where: { farm_id: parseInt(farmId) },
+type Params = { params: Promise<{ farmId: string; experimentId: string }> };
+
+export async function GET(_: Request, { params }: Params) {
+  const { experimentId } = await params;
+  const experiment = await prisma.farmExperiment.findUniqueOrThrow({
+    where: { id: parseInt(experimentId) },
     include: INCLUDE,
-    orderBy: { id: "asc" },
   });
-  return NextResponse.json(experiments);
+  return NextResponse.json(experiment);
 }
 
-export async function POST(req: Request, { params }: { params: Promise<{ farmId: string }> }) {
-  const { farmId } = await params;
-  const farmIdInt = parseInt(farmId);
+export async function PUT(req: Request, { params }: Params) {
+  const { experimentId } = await params;
+  const experimentIdInt = parseInt(experimentId);
   const body = await req.json();
 
   const {
@@ -39,9 +43,16 @@ export async function POST(req: Request, { params }: { params: Promise<{ farmId:
 
   const fieldCreateData = (field_ids as number[]).map((fid) => ({ field_id: fid }));
 
-  const experiment = await prisma.farmExperiment.create({
+  await prisma.$transaction([
+    prisma.experimentTest.deleteMany({ where: { experiment_id: experimentIdInt } }),
+    prisma.experimentDroneFlight.deleteMany({ where: { experiment_id: experimentIdInt } }),
+    prisma.experimentTreatment.deleteMany({ where: { experiment_id: experimentIdInt } }),
+    prisma.experimentField.deleteMany({ where: { experiment_id: experimentIdInt } }),
+  ]);
+
+  const experiment = await prisma.farmExperiment.update({
+    where: { id: experimentIdInt },
     data: {
-      farm_id: farmIdInt,
       experiment_name: experiment_name || null,
       start_date: start_date ? new Date(start_date) : null,
       hypothesis: hypothesis || null,
@@ -71,5 +82,18 @@ export async function POST(req: Request, { params }: { params: Promise<{ farmId:
     include: INCLUDE,
   });
 
-  return NextResponse.json(experiment, { status: 201 });
+  return NextResponse.json(experiment);
+}
+
+export async function DELETE(_: Request, { params }: Params) {
+  const session = await auth();
+  if (!session?.user) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  const editMode = await getEditMode();
+  if (!canDelete(session.user.role as Role, editMode)) {
+    return NextResponse.json({ error: "Forbidden" }, { status: 403 });
+  }
+
+  const { experimentId } = await params;
+  await prisma.farmExperiment.delete({ where: { id: parseInt(experimentId) } });
+  return NextResponse.json({ success: true });
 }

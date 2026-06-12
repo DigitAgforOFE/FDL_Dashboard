@@ -44,6 +44,7 @@ export async function POST(request: Request) {
           end_time: end_time ? new Date(end_time) : null,
           date_collected: start_time ? new Date(start_time) : null,
           status: farmId != null ? 2 : 1,
+          stage: "Unread",
         },
       });
     } else {
@@ -60,6 +61,7 @@ export async function POST(request: Request) {
           end_time: end_time ? new Date(end_time) : null,
           status: 2,
           ticket_ref: ticket_ref || null,
+          stage: "Unread",
         },
       });
     }

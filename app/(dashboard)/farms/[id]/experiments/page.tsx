@@ -1,59 +1,85 @@
 import { prisma } from "@/lib/prisma";
 import { notFound } from "next/navigation";
-import ExperimentFormClient from "./experiment-form-client";
+import Link from "next/link";
+import { buttonVariants } from "@/components/ui/button";
+import { cn } from "@/lib/utils";
+import { Card, CardContent } from "@/components/ui/card";
+import { Plus } from "lucide-react";
 
-export default async function FarmExperimentsPage({ params }: { params: Promise<{ id: string }> }) {
+export default async function FarmExperimentsListPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
   const farmId = parseInt(id);
 
-  const [farm, farmExperiment, allTests, allDrones, allTreatments] = await Promise.all([
+  const [farm, experiments] = await Promise.all([
     prisma.farm.findUnique({ where: { id: farmId }, select: { id: true, Farm_Name: true } }),
-    prisma.farmExperiment.findFirst({
+    prisma.farmExperiment.findMany({
       where: { farm_id: farmId },
-      include: {
-        ExperimentTests: true,
-        ExperimentDroneFlights: true,
-        ExperimentTreatments: true,
-      },
+      orderBy: { id: "asc" },
+      include: { ExperimentFields: { select: { field_id: true } } },
     }),
-    prisma.test.findMany({ select: { id: true, Test_Name: true }, orderBy: { Test_Name: "asc" } }),
-    prisma.drone.findMany({ select: { id: true, Name: true }, orderBy: { Name: "asc" } }),
-    prisma.treatment.findMany({ select: { id: true, Treatment_Name: true }, orderBy: { Treatment_Name: "asc" } }),
   ]);
 
   if (!farm) notFound();
 
   return (
-    <ExperimentFormClient
-      farmId={farm.id}
-      farmName={farm.Farm_Name}
-      experiment={
-        farmExperiment
-          ? {
-              experiment_name: farmExperiment.experiment_name,
-              start_date: farmExperiment.start_date?.toISOString().slice(0, 10) ?? null,
-              hypothesis: farmExperiment.hypothesis,
-              experiment_desc: farmExperiment.experiment_desc,
-              measurements: farmExperiment.measurements,
-              criteria: farmExperiment.criteria,
-              lab_description: farmExperiment.lab_description,
-              tests: farmExperiment.ExperimentTests.map((t) => ({
-                test_id: t.test_id,
-                n_samples: t.n_samples,
-                expected_date: t.expected_date?.toISOString().slice(0, 10) ?? null,
-              })),
-              drones: farmExperiment.ExperimentDroneFlights.map((d) => ({
-                drone_id: d.drone_id,
-                n_flights: d.n_flights,
-                expected_date: d.expected_date?.toISOString().slice(0, 10) ?? null,
-              })),
-              treatment_ids: farmExperiment.ExperimentTreatments.map((t) => t.treatment_id),
-            }
-          : null
-      }
-      allTests={allTests}
-      allDrones={allDrones}
-      allTreatments={allTreatments}
-    />
+    <div className="max-w-2xl space-y-6">
+      <div>
+        <div className="flex items-center gap-2 text-sm text-slate-500 mb-1">
+          <Link href="/farms" className="hover:text-slate-900">Farms</Link>
+          <span>/</span>
+          <Link href={`/farms/${farmId}`} className="hover:text-slate-900">
+            {farm.Farm_Name ?? `Farm #${farmId}`}
+          </Link>
+          <span>/</span>
+          <span>Experiments</span>
+        </div>
+        <div className="flex items-center justify-between">
+          <h2 className="text-2xl font-bold text-slate-900">Experiments</h2>
+          <Link
+            href={`/farms/${farmId}/experiments/new`}
+            className={cn(buttonVariants({ size: "sm" }))}
+          >
+            <Plus className="h-4 w-4 mr-1" /> Add Experiment
+          </Link>
+        </div>
+      </div>
+
+      {experiments.length === 0 ? (
+        <Card>
+          <CardContent className="py-8 text-center text-slate-500 text-sm italic">
+            No experiments yet.{" "}
+            <Link href={`/farms/${farmId}/experiments/new`} className="text-blue-600 hover:underline">
+              Add one
+            </Link>
+          </CardContent>
+        </Card>
+      ) : (
+        <div className="space-y-3">
+          {experiments.map((exp) => (
+            <Card key={exp.id}>
+              <CardContent className="py-4 flex items-center justify-between">
+                <div>
+                  <p className="font-medium text-slate-900">
+                    {exp.experiment_name ?? `Experiment #${exp.id}`}
+                  </p>
+                  <p className="text-sm text-slate-500 mt-0.5">
+                    {exp.start_date
+                      ? `Started ${new Date(exp.start_date).toLocaleDateString()}`
+                      : "No start date"}{" "}
+                    · {exp.ExperimentFields.length} field{exp.ExperimentFields.length !== 1 ? "s" : ""} linked
+                  </p>
+                </div>
+                <Link
+                  href={`/farms/${farmId}/experiments/${exp.id}`}
+                  className={cn(buttonVariants({ variant: "outline", size: "sm" }))}
+                >
+                  Edit
+                </Link>
+              </CardContent>
+            </Card>
+          ))}
+        </div>
+      )}
+    </div>
   );
 }

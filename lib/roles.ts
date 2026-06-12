@@ -13,7 +13,5 @@ export function canEdit(role: Role): boolean {
 }
 
 export function canDelete(role: Role, editMode: boolean): boolean {
-  if (role === "admin") return true
-  if (role === "member" && editMode) return true
-  return false
+  return (role === "admin" || role === "member") && editMode
 }
