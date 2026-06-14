@@ -1,10 +1,16 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { DataTable } from "@/components/data-table";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { Send, MessageCircle, UserCheck, X } from "lucide-react";
+import { Send, MessageCircle, UserCheck, X, Plus } from "lucide-react";
+
+interface MessageTemplate {
+  id: number;
+  name: string;
+  content: string;
+}
 
 const ONBOARDING_MESSAGE = `This number is monitored weekly — not suitable for urgent matters.
 
@@ -44,18 +50,52 @@ function LastSubmissionBadge({ days }: { days: number | null }) {
 function MessageModal({
   farmer,
   initialMessage,
+  templates,
+  onTemplateCreated,
+  onTemplateDeleted,
   onClose,
   onSent,
 }: {
   farmer: WhatsAppRow;
   initialMessage: string;
+  templates: MessageTemplate[];
+  onTemplateCreated: (t: MessageTemplate) => void;
+  onTemplateDeleted: (id: number) => void;
   onClose: () => void;
   onSent: () => void;
 }) {
   const [message, setMessage] = useState(initialMessage);
   const [sending, setSending] = useState(false);
   const [error, setError] = useState("");
+  const [saveMode, setSaveMode] = useState(false);
+  const [templateName, setTemplateName] = useState("");
+  const [savingTemplate, setSavingTemplate] = useState(false);
   const channel = farmer.channel ?? "whatsapp";
+
+  async function saveTemplate() {
+    if (!templateName.trim() || !message.trim()) return;
+    setSavingTemplate(true);
+    try {
+      const res = await fetch("/api/message-templates", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ name: templateName.trim(), content: message.trim() }),
+      });
+      if (res.ok) {
+        const created = await res.json();
+        onTemplateCreated(created);
+        setSaveMode(false);
+        setTemplateName("");
+      }
+    } finally {
+      setSavingTemplate(false);
+    }
+  }
+
+  async function deleteTemplate(id: number) {
+    await fetch(`/api/message-templates/${id}`, { method: "DELETE" });
+    onTemplateDeleted(id);
+  }
 
   async function handleSend() {
     if (!message.trim()) return;
@@ -103,6 +143,31 @@ function MessageModal({
           </button>
         </div>
 
+        {templates.length > 0 && (
+          <div className="space-y-1">
+            <label className="text-xs text-slate-500">Saved messages</label>
+            <div className="border border-slate-200 rounded-lg divide-y divide-slate-100 max-h-32 overflow-y-auto">
+              {templates.map((t) => (
+                <div key={t.id} className="flex items-center justify-between px-3 py-1.5 hover:bg-slate-50">
+                  <button
+                    className="text-sm text-slate-700 text-left truncate flex-1"
+                    onClick={() => setMessage(t.content)}
+                  >
+                    {t.name}
+                  </button>
+                  <button
+                    onClick={() => deleteTemplate(t.id)}
+                    className="ml-2 text-slate-300 hover:text-red-500 flex-shrink-0"
+                    title="Delete template"
+                  >
+                    <X className="h-3 w-3" />
+                  </button>
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
+
         <textarea
           className="w-full border border-slate-200 rounded-lg p-3 text-sm text-slate-800 resize-none focus:outline-none focus:ring-2 focus:ring-emerald-500"
           rows={12}
@@ -112,6 +177,29 @@ function MessageModal({
         />
 
         {error && <p className="text-xs text-red-500">{error}</p>}
+
+        {saveMode ? (
+          <div className="flex items-center gap-2">
+            <input
+              value={templateName}
+              onChange={(e) => setTemplateName(e.target.value)}
+              placeholder="Template name"
+              className="flex-1 h-9 rounded-lg border border-slate-200 px-2 text-sm"
+            />
+            <Button size="sm" onClick={saveTemplate} disabled={savingTemplate || !templateName.trim() || !message.trim()}>
+              {savingTemplate ? "Saving..." : "Save"}
+            </Button>
+            <Button size="sm" variant="ghost" onClick={() => setSaveMode(false)}>Cancel</Button>
+          </div>
+        ) : (
+          <button
+            onClick={() => setSaveMode(true)}
+            disabled={!message.trim()}
+            className="self-start inline-flex items-center gap-1 text-xs text-slate-500 hover:text-slate-800 disabled:opacity-40"
+          >
+            <Plus className="h-3 w-3" /> Save as template
+          </button>
+        )}
 
         <div className="flex justify-end gap-2">
           <Button variant="ghost" onClick={onClose} disabled={sending}>
@@ -139,9 +227,25 @@ export function WhatsAppClient({ data }: { data: WhatsAppRow[] }) {
   } | null>(null);
   const [sentNotice, setSentNotice] = useState("");
   const [onboarded, setOnboarded] = useState<Set<number>>(new Set());
+  const [templates, setTemplates] = useState<MessageTemplate[]>([]);
   const [channels, setChannels] = useState<Record<number, string | null>>(
     Object.fromEntries(data.map((r) => [r.id, r.channel]))
   );
+
+  useEffect(() => {
+    fetch("/api/message-templates")
+      .then((r) => (r.ok ? r.json() : []))
+      .then((data) => setTemplates(Array.isArray(data) ? data : []))
+      .catch(() => setTemplates([]));
+  }, []);
+
+  function handleTemplateCreated(t: MessageTemplate) {
+    setTemplates((prev) => [t, ...prev]);
+  }
+
+  function handleTemplateDeleted(id: number) {
+    setTemplates((prev) => prev.filter((t) => t.id !== id));
+  }
 
   async function updateChannel(farmerId: number, channel: string | null) {
     setChannels((prev) => ({ ...prev, [farmerId]: channel }));
@@ -285,6 +389,9 @@ export function WhatsAppClient({ data }: { data: WhatsAppRow[] }) {
         <MessageModal
           farmer={modal.farmer}
           initialMessage={modal.message}
+          templates={templates}
+          onTemplateCreated={handleTemplateCreated}
+          onTemplateDeleted={handleTemplateDeleted}
           onClose={() => setModal(null)}
           onSent={() => handleSent(modal.farmer.id, modal.isOnboarding)}
         />

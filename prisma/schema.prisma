@@ -528,3 +528,13 @@ model ReportingSubscription {
   @@map("Reporting_Subscriptions")
   @@schema("pgntarg2udzj1f3")
 }
+
+model MessageTemplate {
+  id         Int      @id @default(autoincrement())
+  name       String
+  content    String
+  created_at DateTime @default(now())
+
+  @@map("MessageTemplates")
+  @@schema("pgntarg2udzj1f3")
+}
